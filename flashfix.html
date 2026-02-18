@@ -1,0 +1,2721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlashFix Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  --bg:       #0c0e11;
+  --surface:  #13171c;
+  --panel:    #1a1f26;
+  --card:     #1e242c;
+  --border:   #252d37;
+  --border2:  #2f3a47;
+  --amber:    #f5a623;
+  --amber-dk: #c4831a;
+  --amber-lt: #ffd166;
+  --green:    #2ecc71;
+  --green-dk: #27ae60;
+  --red:      #e74c3c;
+  --blue:     #3498db;
+  --purple:   #9b59b6;
+  --text:     #dde4ec;
+  --muted:    #6b7c8d;
+  --faint:    #323d4a;
+  --head:     'Barlow Condensed', sans-serif;
+  --body:     'Barlow', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════ */
+#app { display: flex; height: 100vh; overflow: hidden; }
+
+.sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: width 0.2s;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+  background: var(--bg);
+}
+
+/* ═══════════════════════════════════════════════
+   AUTH SCREEN
+═══════════════════════════════════════════════ */
+#auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(245,166,35,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(52,152,219,0.04) 0%, transparent 60%);
+}
+
+.auth-card {
+  width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 36px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+}
+
+.brand-logo {
+  font-family: var(--head);
+  font-weight: 800;
+  font-size: 36px;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+.brand-logo .ff { color: var(--amber); }
+.brand-logo .fix { color: var(--text); }
+.brand-tagline {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+
+/* ═══════════════════════════════════════════════
+   FORMS
+═══════════════════════════════════════════════ */
+.form-group { margin-bottom: 14px; }
+.form-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.form-input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 3px;
+  font-family: var(--body);
+  font-size: 13px;
+  transition: border-color 0.15s;
+  outline: none;
+}
+.form-input:focus { border-color: var(--amber); }
+.form-input::placeholder { color: var(--muted); }
+
+select.form-input { cursor: pointer; }
+textarea.form-input { resize: vertical; min-height: 80px; }
+
+/* ═══════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary   { background: var(--amber);   color: #000; border-color: var(--amber); }
+.btn-primary:hover:not(:disabled) { background: var(--amber-lt); }
+.btn-success   { background: var(--green);   color: #000; border-color: var(--green); }
+.btn-success:hover:not(:disabled) { background: var(--green-dk); color: #fff; }
+.btn-ghost     { background: transparent; color: var(--muted); border-color: var(--border2); }
+.btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--border2); background: var(--panel); }
+.btn-danger    { background: transparent; color: var(--red); border-color: var(--red); }
+.btn-danger:hover:not(:disabled) { background: var(--red); color: #fff; }
+.btn-blue      { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn-sm        { padding: 5px 12px; font-size: 11px; }
+.btn-full      { width: 100%; }
+.btn-icon      { padding: 7px; width: 32px; height: 32px; }
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════ */
+.sidebar-brand {
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-brand .logo {
+  font-family: var(--head);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+}
+.sidebar-brand .logo .ff { color: var(--amber); }
+.sidebar-role {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-top: 4px;
+}
+.sidebar-user-name { font-size: 13px; font-weight: 500; color: var(--text); margin-top: 2px; }
+.sidebar-user-email { font-size: 11px; color: var(--muted); }
+
+.sidebar-nav { flex: 1; padding: 8px 0; }
+.nav-section-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 10px 16px 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.12s;
+  user-select: none;
+}
+.nav-item:hover { background: var(--panel); color: var(--text); }
+.nav-item.active { background: var(--panel); color: var(--amber); border-left-color: var(--amber); }
+.nav-item .nav-icon { font-size: 14px; width: 16px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  min-width: 16px;
+  text-align: center;
+}
+.nav-badge.amber { background: var(--amber); color: #000; }
+.nav-badge.green { background: var(--green); color: #000; }
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════
+   PAGE HEADER
+═══════════════════════════════════════════════ */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.page-title {
+  font-family: var(--head);
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1;
+}
+.page-title .accent { color: var(--amber); }
+.page-subtitle {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ═══════════════════════════════════════════════
+   CARDS & PANELS
+═══════════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.card-title {
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.card-body { padding: 18px; }
+
+/* ═══════════════════════════════════════════════
+   STAT CARDS
+═══════════════════════════════════════════════ */
+.stats-row {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.stats-row.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.stats-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.stats-row.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.stat-card.amber::after { background: var(--amber); }
+.stat-card.green::after { background: var(--green); }
+.stat-card.red::after   { background: var(--red); }
+.stat-card.blue::after  { background: var(--blue); }
+
+.stat-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-family: var(--head);
+  font-weight: 800;
+  font-size: 36px;
+  line-height: 1;
+  color: var(--text);
+}
+.stat-value.amber { color: var(--amber); }
+.stat-value.green { color: var(--green); }
+.stat-value.red   { color: var(--red); }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ═══════════════════════════════════════════════
+   STATUS PILLS
+═══════════════════════════════════════════════ */
+.pill {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.pill-pending   { background: rgba(245,166,35,.12); color: var(--amber); border-color: rgba(245,166,35,.3); }
+.pill-active    { background: rgba(46,204,113,.1);  color: var(--green); border-color: rgba(46,204,113,.3); }
+.pill-complete  { background: rgba(52,152,219,.1);  color: var(--blue);  border-color: rgba(52,152,219,.3); }
+.pill-review    { background: rgba(231,76,60,.1);   color: var(--red);   border-color: rgba(231,76,60,.3); }
+.pill-draft     { background: rgba(107,124,141,.1); color: var(--muted); border-color: rgba(107,124,141,.3); }
+.pill-confirmed { background: rgba(46,204,113,.15); color: #2ecc71;      border-color: rgba(46,204,113,.4); }
+.pill-declared  { background: rgba(52,152,219,.12); color: var(--blue);  border-color: rgba(52,152,219,.3); }
+
+/* ═══════════════════════════════════════════════
+   TABLES
+═══════════════════════════════════════════════ */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { border-bottom: 1px solid var(--border); }
+th {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 10px 16px;
+  text-align: left;
+  white-space: nowrap;
+}
+td { padding: 11px 16px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--panel); }
+.td-mono { font-family: var(--mono); font-size: 11px; color: var(--amber); }
+.td-amount { font-family: var(--head); font-weight: 700; font-size: 16px; color: var(--amber); }
+
+/* ═══════════════════════════════════════════════
+   GRIDS
+═══════════════════════════════════════════════ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+/* ═══════════════════════════════════════════════
+   PAYMENT METHOD CARDS
+═══════════════════════════════════════════════ */
+.pay-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.pay-method-card {
+  padding: 14px;
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--panel);
+}
+.pay-method-card:hover { border-color: var(--amber); }
+.pay-method-card.selected { border-color: var(--amber); background: rgba(245,166,35,0.06); }
+.pay-method-icon { font-size: 20px; margin-bottom: 6px; }
+.pay-method-name { font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 4px; }
+.pay-method-detail { font-family: var(--mono); font-size: 11px; color: var(--amber); word-break: break-all; }
+
+/* ═══════════════════════════════════════════════
+   PROGRESS BAR
+═══════════════════════════════════════════════ */
+.progress-wrap { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--amber); border-radius: 2px; transition: width 0.4s; }
+.progress-fill.green { background: var(--green); }
+
+/* ═══════════════════════════════════════════════
+   ALERTS & CALLOUTS
+═══════════════════════════════════════════════ */
+.alert {
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  border: 1px solid;
+}
+.alert-error   { background: rgba(231,76,60,.08);   color: #e74c3c; border-color: rgba(231,76,60,.3); }
+.alert-success { background: rgba(46,204,113,.08);  color: var(--green); border-color: rgba(46,204,113,.3); }
+.alert-info    { background: rgba(245,166,35,.08);  color: var(--amber); border-color: rgba(245,166,35,.3); }
+.alert-blue    { background: rgba(52,152,219,.08);  color: var(--blue);  border-color: rgba(52,152,219,.3); }
+
+/* ═══════════════════════════════════════════════
+   UPLOAD ZONE
+═══════════════════════════════════════════════ */
+.upload-zone {
+  border: 2px dashed var(--faint);
+  border-radius: 4px;
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.upload-zone:hover { border-color: var(--amber); background: rgba(245,166,35,0.02); }
+.upload-zone input[type=file] { display: none; }
+
+/* ═══════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.15s ease;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  width: 520px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+  animation: slideUp 0.15s ease;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title {
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.modal-body { padding: 22px; }
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 22px;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 12px 18px;
+  font-size: 13px;
+  max-width: 340px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  animation: slideUp 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error   { border-left: 3px solid var(--red); }
+.toast.info    { border-left: 3px solid var(--amber); }
+
+/* ═══════════════════════════════════════════════
+   LOADING
+═══════════════════════════════════════════════ */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--amber);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  gap: 12px;
+}
+
+/* ═══════════════════════════════════════════════
+   CALENDAR
+═══════════════════════════════════════════════ */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-header-cell {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.12s;
+}
+.cal-day:hover { border-color: var(--amber); }
+.cal-day.empty { opacity: 0; pointer-events: none; }
+.cal-day.available    { background: rgba(46,204,113,0.12); color: var(--green); }
+.cal-day.unavailable  { background: rgba(231,76,60,0.08);  color: var(--red); opacity: 0.6; }
+.cal-day.has-job      { background: rgba(245,166,35,0.12); color: var(--amber); }
+.cal-day.today        { border-color: var(--amber); color: var(--amber); font-weight: 600; }
+
+/* ═══════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════ */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--muted);
+}
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state .text { font-size: 13px; }
+.empty-state .sub  { font-size: 12px; color: var(--faint); margin-top: 4px; }
+
+/* ═══════════════════════════════════════════════
+   CONFIG SCREEN
+═══════════════════════════════════════════════ */
+#config-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+.config-card {
+  width: 540px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 36px;
+}
+
+/* ═══════════════════════════════════════════════
+   ROLE BADGE
+═══════════════════════════════════════════════ */
+.role-badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-weight: 500;
+}
+.role-admin    { background: rgba(231,76,60,.15);    color: var(--red);    border: 1px solid rgba(231,76,60,.3); }
+.role-pm       { background: rgba(52,152,219,.15);   color: var(--blue);   border: 1px solid rgba(52,152,219,.3); }
+.role-sub      { background: rgba(46,204,113,.12);   color: var(--green);  border: 1px solid rgba(46,204,113,.3); }
+.role-owner    { background: rgba(155,89,182,.12);   color: var(--purple); border: 1px solid rgba(155,89,182,.3); }
+
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════ */
+@keyframes fadeIn  { from { opacity: 0; }              to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.page-enter { animation: slideUp 0.18s ease; }
+
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+/* ═══════════════════════════════════════════════
+   DIVIDER
+═══════════════════════════════════════════════ */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+.section-gap { height: 20px; }
+
+/* role selectors on register */
+.role-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.12s;
+  background: var(--panel);
+}
+.role-option:hover { border-color: var(--amber); }
+.role-option.selected { border-color: var(--amber); background: rgba(245,166,35,0.06); }
+.role-option input[type=radio] { accent-color: var(--amber); margin-top: 2px; flex-shrink: 0; }
+.role-option-label { font-weight: 600; font-size: 13px; color: var(--text); }
+.role-option-desc  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* job card for subcontractor */
+.job-avail-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 10px;
+  transition: border-color 0.15s;
+}
+.job-avail-card:hover { border-color: var(--border2); }
+
+/* notification item */
+.notif-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.notif-item:hover { background: var(--panel); }
+.notif-item.unread { border-left: 2px solid var(--amber); }
+.notif-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+/* tabs */
+.tab-bar { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.tab {
+  padding: 8px 18px;
+  font-family: var(--head);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.12s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     CONFIG SCREEN (first run)
+════════════════════════════════════════════ -->
+
+  <div class="config-card">
+    <div class="brand-logo" style="margin-bottom:6px"><span class="ff">FLASH</span><span class="fix">FIX</span></div>
+    <div class="brand-tagline">Platform Setup</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:22px;line-height:1.6">
+      Enter your Supabase project credentials. Find these in your Supabase dashboard under
+      <strong style="color:var(--text)">Settings → API</strong>.
+    </p>
+    <div class="form-group">
+      <label class="form-label">Supabase Project URL</label>
+      <input class="form-input" id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Supabase Anon Key</label>
+      <input class="form-input" id="cfg-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+    </div>
+    <div class="divider"></div>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:14px">Your payment details — shown to property managers when paying invoices.</p>
+    <div class="grid-2" style="gap:10px;margin-bottom:12px">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Zelle Email/Phone</label>
+        <input class="form-input" id="cfg-zelle" placeholder="pay@flashfix.io">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Cash App Tag</label>
+        <input class="form-input" id="cfg-cashapp" placeholder="$FlashFix">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Venmo Handle</label>
+        <input class="form-input" id="cfg-venmo" placeholder="@FlashFix">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Bank (Routing)</label>
+        <input class="form-input" id="cfg-routing" placeholder="021000021">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Bank Account Number</label>
+      <input class="form-input" id="cfg-account" placeholder="Account number">
+    </div>
+    <div id="cfg-error" class="alert alert-error" style="display:none"></div>
+    <button class="btn btn-primary btn-full" onclick="saveConfig()">Save & Connect</button>
+    <p style="color:var(--faint);font-size:11px;font-family:var(--mono);margin-top:12px;text-align:center">
+      Settings saved locally in your browser. Never shared.
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════════════ -->
+<div id="auth-screen" style="display:none">
+  <div class="auth-card">
+    <div class="brand-logo"><span class="ff">FLASH</span><span class="fix">FIX</span></div>
+    <div class="brand-tagline">Property Services Platform</div>
+
+    <!-- Login form -->
+    <div id="auth-login">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="login-email" type="email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="login-password" type="password" placeholder="••••••••">
+      </div>
+      <div id="login-error" class="alert alert-error" style="display:none"></div>
+      <button class="btn btn-primary btn-full" onclick="handleLogin()" style="margin-bottom:14px">Sign In</button>
+      <p style="text-align:center;color:var(--muted);font-size:12px">
+        No account? <a href="#" onclick="showRegister()" style="color:var(--amber)">Register</a>
+        &nbsp;·&nbsp;
+        <a href="#" onclick="showConfig()" style="color:var(--faint);font-size:11px">Settings</a>
+      </p>
+    </div>
+
+    <!-- Register form -->
+    <div id="auth-register" style="display:none">
+      <div class="form-group">
+        <label class="form-label">I am a…</label>
+        <div class="role-option selected" onclick="selectRole('homeowner',this)">
+          <input type="radio" name="reg-role" value="homeowner" checked>
+          <div><div class="role-option-label">Homeowner</div><div class="role-option-desc">Submit repair requests for my home</div></div>
+        </div>
+        <div class="role-option" onclick="selectRole('property_manager',this)">
+          <input type="radio" name="reg-role" value="property_manager">
+          <div><div class="role-option-label">Property Manager</div><div class="role-option-desc">Manage properties, dispatch jobs, pay invoices</div></div>
+        </div>
+        <div class="role-option" onclick="selectRole('subcontractor',this)">
+          <input type="radio" name="reg-role" value="subcontractor">
+          <div><div class="role-option-label">Subcontractor</div><div class="role-option-desc">Accept jobs, complete work, submit invoices</div></div>
+        </div>
+      </div>
+      <div class="grid-2" style="gap:10px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" id="reg-name" placeholder="Full name">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Phone</label>
+          <input class="form-input" id="reg-phone" type="tel" placeholder="+1 555 000 0000">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="reg-email" type="email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="reg-password" type="password" placeholder="Min 8 characters">
+      </div>
+      <div id="reg-error" class="alert alert-error" style="display:none"></div>
+      <div id="reg-success" class="alert alert-success" style="display:none"></div>
+      <button class="btn btn-primary btn-full" onclick="handleRegister()" style="margin-bottom:14px">Create Account</button>
+      <p style="text-align:center;color:var(--muted);font-size:12px">
+        Have an account? <a href="#" onclick="showLogin()" style="color:var(--amber)">Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MAIN APP
+════════════════════════════════════════════ -->
+<div id="app" style="display:none">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo"><span class="ff">FLASH</span><span style="color:var(--text)">FIX</span></div>
+      <div id="sb-role" class="sidebar-role"></div>
+      <div id="sb-name" class="sidebar-user-name"></div>
+      <div id="sb-email" class="sidebar-user-email"></div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm btn-full" onclick="handleSignOut()">Sign Out</button>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--faint);text-align:center;margin-top:8px">FlashFix v1.0</div>
+    </div>
+  </aside>
+  <div class="main-content" id="main-content"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL CONTAINER
+════════════════════════════════════════════ -->
+<div id="modal-container"></div>
+
+<!-- ═══════════════════════════════════════════
+     TOAST CONTAINER
+════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let supabase = null
+let currentUser = null
+let currentProfile = null
+let currentPage = null
+let CFG = {}
+
+// ═══════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem('ff_config')
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function saveConfig() {
+  const url = document.getElementById('cfg-url').value.trim()
+  const key = document.getElementById('cfg-key').value.trim()
+  if (!url || !key) { showEl('cfg-error', 'URL and Anon Key are required'); return }
+  const cfg = {
+    url, key,
+    zelle:    document.getElementById('cfg-zelle').value.trim()   || 'payments@flashfix.io',
+    cashapp:  document.getElementById('cfg-cashapp').value.trim() || '$FlashFix',
+    venmo:    document.getElementById('cfg-venmo').value.trim()   || '@FlashFix',
+    routing:  document.getElementById('cfg-routing').value.trim() || '',
+    account:  document.getElementById('cfg-account').value.trim() || '',
+  }
+  localStorage.setItem('ff_config', JSON.stringify(cfg))
+  location.reload()
+}
+
+function showConfig() {
+  hide('auth-screen'); hide('app')
+  show('config-screen')
+  const cfg = loadConfig()
+  if (cfg) {
+    document.getElementById('cfg-url').value = cfg.url || ''
+    document.getElementById('cfg-key').value = cfg.key || ''
+    document.getElementById('cfg-zelle').value = cfg.zelle || ''
+    document.getElementById('cfg-cashapp').value = cfg.cashapp || ''
+    document.getElementById('cfg-venmo').value = cfg.venmo || ''
+    document.getElementById('cfg-routing').value = cfg.routing || ''
+    document.getElementById('cfg-account').value = cfg.account || ''
+  }
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init() {
+  CFG = loadConfig()
+  if (!CFG || !CFG.url || !CFG.key) {
+    // config-screen is already visible by default
+    return
+  }
+
+  hide('config-screen')
+  supabase = window.supabase.createClient(CFG.url, CFG.key)
+
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) { showAuthScreen(); return }
+
+  currentUser = session.user
+  await loadProfile()
+  showApp()
+
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_OUT') { showAuthScreen() }
+  })
+}
+
+async function loadProfile() {
+  const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single()
+  currentProfile = data
+}
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+function showAuthScreen() {
+  hide('app'); hide('config-screen')
+  show('auth-screen')
+  show('auth-login'); hide('auth-register')
+}
+
+function showLogin() { show('auth-login'); hide('auth-register') }
+function showRegister() { hide('auth-login'); show('auth-register') }
+
+let selectedRole = 'homeowner'
+function selectRole(role, el) {
+  selectedRole = role
+  document.querySelectorAll('.role-option').forEach(o => o.classList.remove('selected'))
+  el.classList.add('selected')
+  el.querySelector('input[type=radio]').checked = true
+}
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim()
+  const password = document.getElementById('login-password').value
+  hide('login-error')
+  if (!email || !password) { showEl('login-error', 'Email and password required'); return }
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) { showEl('login-error', error.message); return }
+  currentUser = data.user
+  await loadProfile()
+  showApp()
+}
+
+async function handleRegister() {
+  const name = document.getElementById('reg-name').value.trim()
+  const email = document.getElementById('reg-email').value.trim()
+  const password = document.getElementById('reg-password').value
+  const phone = document.getElementById('reg-phone').value.trim()
+  hide('reg-error'); hide('reg-success')
+
+  if (!name || !email || !password) { showEl('reg-error', 'Name, email and password required'); return }
+  if (password.length < 8) { showEl('reg-error', 'Password must be at least 8 characters'); return }
+
+  const { error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { full_name: name, phone, role: selectedRole } }
+  })
+
+  if (error) { showEl('reg-error', error.message); return }
+  showEl('reg-success', 'Account created! Check your email to confirm, then sign in.')
+}
+
+async function handleSignOut() {
+  await supabase.auth.signOut()
+  currentUser = null; currentProfile = null
+  showAuthScreen()
+}
+
+// ═══════════════════════════════════════════
+// APP SHELL
+// ═══════════════════════════════════════════
+function showApp() {
+  hide('auth-screen'); hide('config-screen')
+  show('app')
+  renderSidebar()
+  navigateTo(defaultPage())
+}
+
+function defaultPage() {
+  const role = currentProfile?.role
+  if (role === 'admin') return 'admin-dashboard'
+  if (role === 'property_manager') return 'pm-dashboard'
+  if (role === 'subcontractor') return 'sub-dashboard'
+  return 'owner-dashboard'
+}
+
+function renderSidebar() {
+  const role = currentProfile?.role
+  document.getElementById('sb-role').textContent = roleLabel(role)
+  document.getElementById('sb-name').textContent = currentProfile?.full_name || currentUser?.email || ''
+  document.getElementById('sb-email').textContent = currentUser?.email || ''
+
+  const nav = NAV_ITEMS[role] || []
+  const html = nav.map(section => `
+    <div class="nav-section-label">${section.section}</div>
+    ${section.items.map(item => `
+      <div class="nav-item" id="nav-${item.page}" onclick="navigateTo('${item.page}')">
+        <span class="nav-icon">${item.icon}</span>
+        <span>${item.label}</span>
+        ${item.badge ? `<span class="nav-badge ${item.badgeColor||''}">${item.badge}</span>` : ''}
+      </div>
+    `).join('')}
+  `).join('')
+  document.getElementById('sidebar-nav').innerHTML = html
+}
+
+const NAV_ITEMS = {
+  admin: [
+    { section: 'Overview', items: [
+      { icon: '◈', label: 'Dashboard',  page: 'admin-dashboard' },
+    ]},
+    { section: 'Operations', items: [
+      { icon: '⊞', label: 'All Jobs',   page: 'admin-jobs' },
+      { icon: '⊗', label: 'Payments',   page: 'admin-payments' },
+    ]},
+    { section: 'Users', items: [
+      { icon: '◐', label: 'Users',      page: 'admin-users' },
+    ]},
+  ],
+  property_manager: [
+    { section: 'Overview', items: [
+      { icon: '◈', label: 'Dashboard',  page: 'pm-dashboard' },
+    ]},
+    { section: 'Work', items: [
+      { icon: '◉', label: 'Properties', page: 'pm-properties' },
+      { icon: '⊞', label: 'Jobs',       page: 'pm-jobs' },
+    ]},
+    { section: 'Finance', items: [
+      { icon: '⊗', label: 'Invoices',   page: 'pm-invoices' },
+    ]},
+  ],
+  subcontractor: [
+    { section: 'Overview', items: [
+      { icon: '◈', label: 'Dashboard',  page: 'sub-dashboard' },
+    ]},
+    { section: 'Jobs', items: [
+      { icon: '⊕', label: 'Find Jobs',  page: 'sub-available' },
+      { icon: '⊞', label: 'My Jobs',    page: 'sub-myjobs' },
+      { icon: '◐', label: 'Calendar',   page: 'sub-calendar' },
+    ]},
+  ],
+  homeowner: [
+    { section: 'Overview', items: [
+      { icon: '◈', label: 'Dashboard',  page: 'owner-dashboard' },
+    ]},
+    { section: 'Services', items: [
+      { icon: '⊞', label: 'My Jobs',    page: 'owner-jobs' },
+    ]},
+  ],
+}
+
+function roleLabel(role) {
+  return { admin:'Admin', property_manager:'Property Manager', subcontractor:'Subcontractor', homeowner:'Homeowner' }[role] || role
+}
+
+async function navigateTo(page) {
+  currentPage = page
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'))
+  const navEl = document.getElementById('nav-' + page)
+  if (navEl) navEl.classList.add('active')
+
+  const mc = document.getElementById('main-content')
+  mc.innerHTML = `<div class="loading-screen"><div class="spinner"></div> Loading…</div>`
+
+  const renderers = {
+    'admin-dashboard': renderAdminDashboard,
+    'admin-jobs':      renderAdminJobs,
+    'admin-payments':  renderAdminPayments,
+    'admin-users':     renderAdminUsers,
+    'pm-dashboard':    renderPMDashboard,
+    'pm-properties':   renderPMProperties,
+    'pm-jobs':         renderPMJobs,
+    'pm-invoices':     renderPMInvoices,
+    'sub-dashboard':   renderSubDashboard,
+    'sub-available':   renderSubAvailable,
+    'sub-myjobs':      renderSubMyJobs,
+    'sub-calendar':    renderSubCalendar,
+    'owner-dashboard': renderOwnerDashboard,
+    'owner-jobs':      renderOwnerJobs,
+  }
+
+  const fn = renderers[page]
+  if (fn) {
+    try { await fn() }
+    catch(e) { mc.innerHTML = `<div class="alert alert-error">Error loading page: ${e.message}</div>` }
+  } else {
+    mc.innerHTML = `<div class="empty-state"><div class="icon">🔧</div><div class="text">Page not found</div></div>`
+  }
+}
+
+// ═══════════════════════════════════════════
+// ── ADMIN: DASHBOARD ────────────────────
+// ═══════════════════════════════════════════
+async function renderAdminDashboard() {
+  const [
+    { count: totalUsers },
+    { count: totalJobs },
+    { count: activeJobs },
+    { count: pendingPay },
+    { data: recentJobs },
+    { data: recentInvoices },
+  ] = await Promise.all([
+    supabase.from('profiles').select('*',{count:'exact',head:true}),
+    supabase.from('jobs').select('*',{count:'exact',head:true}),
+    supabase.from('jobs').select('*',{count:'exact',head:true}).in('status',['assigned','in_progress']),
+    supabase.from('invoices').select('*',{count:'exact',head:true}).eq('status','payment_declared'),
+    supabase.from('jobs').select('*, property:properties(address_line1,city), assigned_profile:profiles!assigned_to(full_name)').order('created_at',{ascending:false}).limit(6),
+    supabase.from('invoices').select('*, job:jobs(title), sub:profiles!submitted_by(full_name)').order('created_at',{ascending:false}).limit(5),
+  ])
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">ADMIN <span class="accent">DASHBOARD</span></div>
+        <div class="page-subtitle">// system overview · all users · all jobs</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="live-dot"></span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">Live</span>
+      </div>
+    </div>
+
+    <div class="stats-row cols-4">
+      <div class="stat-card amber">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value">${totalUsers??0}</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Active Jobs</div>
+        <div class="stat-value green">${activeJobs??0}</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Total Jobs</div>
+        <div class="stat-value">${totalJobs??0}</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Payments Awaiting</div>
+        <div class="stat-value red">${pendingPay??0}</div>
+        <div class="stat-sub">${pendingPay>0?'<a href="#" onclick="navigateTo(\'admin-payments\')" style="color:var(--amber)">Review now →</a>':''}</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Jobs</span>
+          <a href="#" onclick="navigateTo('admin-jobs')" style="font-size:11px;color:var(--amber);font-family:var(--mono)">View all →</a>
+        </div>
+        ${(recentJobs||[]).length ? recentJobs.map(j => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 18px;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-weight:500;font-size:13px">${j.title}</div>
+              <div style="font-size:11px;color:var(--muted)">${j.property?.address_line1||''}${j.assigned_profile?` · ${j.assigned_profile.full_name}`:''}</div>
+            </div>
+            <span class="${statusPill(j.status)}">${j.status.replace('_',' ')}</span>
+          </div>
+        `).join('') : emptyState('No jobs yet')}
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Invoices</span>
+          <a href="#" onclick="navigateTo('admin-payments')" style="font-size:11px;color:var(--amber);font-family:var(--mono)">Payment queue →</a>
+        </div>
+        ${(recentInvoices||[]).length ? recentInvoices.map(i => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 18px;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-weight:500;font-size:13px">${i.job?.title||'—'}</div>
+              <div style="font-size:11px;color:var(--muted)">${i.sub?.full_name||''}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-family:var(--head);font-weight:700;color:var(--amber)">$${Number(i.total_amount).toFixed(2)}</div>
+              <span class="${invPill(i.status)}">${i.status.replace(/_/g,' ')}</span>
+            </div>
+          </div>
+        `).join('') : emptyState('No invoices yet')}
+      </div>
+    </div>
+  `)
+}
+
+// ═══════════════════════════════════════════
+// ── ADMIN: JOBS ─────────────────────────
+// ═══════════════════════════════════════════
+async function renderAdminJobs() {
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('*, property:properties(address_line1,city), assigned_profile:profiles!assigned_to(full_name,email), creator:profiles!created_by(full_name)')
+    .order('created_at', {ascending:false})
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">ALL <span class="accent">JOBS</span></div>
+        <div class="page-subtitle">${(jobs||[]).length} total jobs in system</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Job</th><th>Property</th><th>Created By</th><th>Assigned To</th><th>Status</th><th>Priority</th><th>Due</th><th>Actions</th>
+          </tr></thead>
+          <tbody>
+            ${(jobs||[]).map(j => `
+              <tr>
+                <td><div style="font-weight:500">${j.title}</div><div style="font-size:11px;color:var(--muted)">${j.category}</div></td>
+                <td style="font-size:12px">${j.property?.address_line1||'—'}<br><span style="color:var(--muted)">${j.property?.city||''}</span></td>
+                <td style="font-size:12px">${j.creator?.full_name||'—'}</td>
+                <td style="font-size:12px">${j.assigned_profile?.full_name||'<span style="color:var(--faint)">Unassigned</span>'}</td>
+                <td><span class="${statusPill(j.status)}">${j.status.replace('_',' ')}</span></td>
+                <td><span class="pill ${j.priority==='emergency'?'pill-review':j.priority==='urgent'?'pill-pending':'pill-draft'}">${j.priority}</span></td>
+                <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${j.due_date||'—'}</td>
+                <td><button class="btn btn-ghost btn-sm" onclick="openJobDetail('${j.id}')">View</button></td>
+              </tr>
+            `).join('') || `<tr><td colspan="8">${emptyState('No jobs yet')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `)
+}
+
+// ═══════════════════════════════════════════
+// ── ADMIN: PAYMENTS (the key screen) ─────
+// ═══════════════════════════════════════════
+async function renderAdminPayments() {
+  const { data: invoices } = await supabase
+    .from('invoices')
+    .select('*, job:jobs(title,category,property:properties(address_line1,city)), sub:profiles!submitted_by(full_name,email,phone), confirmer:profiles!confirmed_by(full_name)')
+    .order('payment_declared_at', {ascending:true})
+    .order('created_at', {ascending:false})
+
+  const declared  = (invoices||[]).filter(i => i.status === 'payment_declared')
+  const submitted = (invoices||[]).filter(i => i.status === 'submitted')
+  const confirmed = (invoices||[]).filter(i => i.status === 'payment_confirmed')
+  const disputed  = (invoices||[]).filter(i => i.status === 'disputed')
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">PAYMENT <span class="accent">QUEUE</span></div>
+        <div class="page-subtitle">// manually confirm payments received · no processor fees</div>
+      </div>
+      ${declared.length > 0 ? `<div class="alert alert-info" style="margin:0;padding:8px 16px">${declared.length} payment${declared.length>1?'s':''} awaiting your confirmation</div>` : ''}
+    </div>
+
+    <div class="stats-row cols-4">
+      <div class="stat-card red"><div class="stat-label">Needs Confirmation</div><div class="stat-value red">${declared.length}</div></div>
+      <div class="stat-card amber"><div class="stat-label">Awaiting PM Payment</div><div class="stat-value amber">${submitted.length}</div></div>
+      <div class="stat-card green"><div class="stat-label">Confirmed</div><div class="stat-value green">${confirmed.length}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Disputed</div><div class="stat-value">${disputed.length}</div></div>
+    </div>
+
+    ${declared.length > 0 ? `
+      <h2 style="font-family:var(--head);font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--amber);margin-bottom:12px">⚠ Needs Your Confirmation</h2>
+      <div style="margin-bottom:24px">${declared.map(inv => adminInvoiceCard(inv, true)).join('')}</div>
+    ` : ''}
+
+    ${submitted.length > 0 ? `
+      <h2 style="font-family:var(--head);font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:12px">Waiting for PM to Send Payment</h2>
+      <div style="margin-bottom:24px">${submitted.map(inv => adminInvoiceCard(inv, false)).join('')}</div>
+    ` : ''}
+
+    ${confirmed.length > 0 ? `
+      <h2 style="font-family:var(--head);font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);margin-bottom:12px">✓ Confirmed Payments</h2>
+      <div style="margin-bottom:24px">${confirmed.map(inv => adminInvoiceCard(inv, false)).join('')}</div>
+    ` : ''}
+
+    ${!invoices?.length ? `<div class="empty-state"><div class="icon">💳</div><div class="text">No invoices yet</div><div class="sub">They appear here when subcontractors submit them</div></div>` : ''}
+  `)
+}
+
+function adminInvoiceCard(inv, actionable) {
+  const methodLabels = {zelle:'💜 Zelle',cashapp:'💚 Cash App',venmo:'🔵 Venmo',bank_transfer:'🏦 Bank Transfer'}
+  return `
+    <div class="card" style="margin-bottom:10px;${actionable?'border-color:rgba(245,166,35,0.3)':''}">
+      <div class="card-header">
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--amber)">INV-${inv.id.slice(0,8).toUpperCase()}</div>
+          <div style="font-weight:600;font-size:14px;margin-top:2px">${inv.job?.title||'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">${inv.job?.property?.address_line1||''} · Sub: ${inv.sub?.full_name||'—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--head);font-weight:800;font-size:24px;color:var(--amber)">$${Number(inv.total_amount).toFixed(2)}</div>
+          <span class="${invPill(inv.status)}">${inv.status.replace(/_/g,' ')}</span>
+          ${inv.payment_method ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${methodLabels[inv.payment_method]||inv.payment_method}</div>` : ''}
+        </div>
+      </div>
+      <div style="padding:12px 18px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;border-bottom:1px solid var(--border);font-size:12px">
+        <div><div class="stat-label">Labour</div>${inv.labour_hours}h @ $${inv.labour_rate}/h</div>
+        <div><div class="stat-label">Materials</div>$${Number(inv.materials_cost).toFixed(2)}</div>
+        <div><div class="stat-label">Total</div><strong style="color:var(--amber)">$${Number(inv.total_amount).toFixed(2)}</strong></div>
+        <div><div class="stat-label">Reference</div>${inv.payment_reference||'<span style="color:var(--faint)">None provided</span>'}</div>
+      </div>
+      ${inv.work_summary ? `<div style="padding:10px 18px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border)"><span style="color:var(--faint)">WORK: </span>${inv.work_summary}</div>` : ''}
+      ${actionable ? `
+        <div style="padding:16px 18px;background:rgba(245,166,35,0.04)">
+          <div style="margin-bottom:10px">
+            <div class="form-label">Admin Notes (optional)</div>
+            <input class="form-input" id="notes-${inv.id}" placeholder="e.g. Verified in Zelle app · reference matches">
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-success" style="flex:1" onclick="confirmPayment('${inv.id}')">
+              ✓ Confirm Payment Received — $${Number(inv.total_amount).toFixed(2)}
+            </button>
+            <button class="btn btn-danger" onclick="disputeInvoice('${inv.id}')">Flag Dispute</button>
+          </div>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px">Confirming will notify the subcontractor and close the job.</p>
+        </div>
+      ` : ''}
+      ${inv.status==='payment_confirmed' ? `
+        <div style="padding:10px 18px;background:rgba(46,204,113,0.06)">
+          <span style="color:var(--green);font-size:12px">✅ Confirmed ${inv.payment_confirmed_at?new Date(inv.payment_confirmed_at).toLocaleString():''}</span>
+          ${inv.admin_notes ? `<span style="color:var(--muted);font-size:12px"> · ${inv.admin_notes}</span>` : ''}
+        </div>
+      ` : ''}
+    </div>
+  `
+}
+
+async function confirmPayment(invoiceId) {
+  const notes = document.getElementById('notes-'+invoiceId)?.value || ''
+  const btn = event.target
+  btn.disabled = true
+  btn.textContent = 'Confirming…'
+
+  // Update invoice
+  const { error: invErr } = await supabase.from('invoices').update({
+    status: 'payment_confirmed',
+    payment_confirmed_at: new Date().toISOString(),
+    confirmed_by: currentUser.id,
+    admin_notes: notes || null,
+  }).eq('id', invoiceId)
+
+  if (invErr) { toast('Error: ' + invErr.message, 'error'); btn.disabled=false; btn.textContent='Confirm'; return }
+
+  // Get invoice to find job + sub
+  const { data: inv } = await supabase.from('invoices').select('job_id,submitted_by').eq('id',invoiceId).single()
+  if (inv) {
+    await supabase.from('jobs').update({status:'complete', completed_at:new Date().toISOString()}).eq('id',inv.job_id)
+    await createNotification(inv.submitted_by, 'payment_confirmed', 'Payment confirmed!', 'FlashFix admin has confirmed your payment was received.')
+  }
+
+  toast('Payment confirmed. Job closed.', 'success')
+  await renderAdminPayments()
+}
+
+async function disputeInvoice(invoiceId) {
+  const { error } = await supabase.from('invoices').update({status:'disputed'}).eq('id',invoiceId)
+  if (error) { toast('Error: '+error.message,'error'); return }
+  toast('Invoice flagged as disputed','info')
+  await renderAdminPayments()
+}
+
+// ═══════════════════════════════════════════
+// ── ADMIN: USERS ─────────────────────────
+// ═══════════════════════════════════════════
+async function renderAdminUsers() {
+  const { data: users } = await supabase.from('profiles').select('*').order('created_at',{ascending:false})
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">USER <span class="accent">MANAGEMENT</span></div>
+        <div class="page-subtitle">${(users||[]).length} registered users</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>User</th><th>Role</th><th>Phone</th><th>Status</th><th>Joined</th><th>Actions</th>
+          </tr></thead>
+          <tbody>
+            ${(users||[]).map(u => `
+              <tr>
+                <td>
+                  <div style="font-weight:500">${u.full_name||'—'}</div>
+                  <div style="font-size:11px;color:var(--muted)">${u.email}</div>
+                </td>
+                <td><span class="${rolePillClass(u.role)}">${roleLabel(u.role)}</span></td>
+                <td style="font-family:var(--mono);font-size:11px">${u.phone||'—'}</td>
+                <td><span class="${u.is_active?'pill pill-active':'pill pill-review'}">${u.is_active?'Active':'Suspended'}</span></td>
+                <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${new Date(u.created_at).toLocaleDateString()}</td>
+                <td style="display:flex;gap:6px">
+                  <select class="form-input" style="width:auto;padding:4px 8px;font-size:11px" onchange="changeUserRole('${u.id}',this.value)">
+                    ${['admin','property_manager','homeowner','subcontractor'].map(r=>`<option ${r===u.role?'selected':''}>${r}</option>`).join('')}
+                  </select>
+                  <button class="btn ${u.is_active?'btn-danger':'btn-ghost'} btn-sm" onclick="toggleUserActive('${u.id}',${u.is_active})">
+                    ${u.is_active?'Suspend':'Restore'}
+                  </button>
+                </td>
+              </tr>
+            `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No users yet</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `)
+}
+
+async function changeUserRole(userId, newRole) {
+  const { error } = await supabase.from('profiles').update({role:newRole}).eq('id',userId)
+  if (error) { toast('Error: '+error.message,'error'); return }
+  toast('Role updated to '+roleLabel(newRole),'success')
+}
+
+async function toggleUserActive(userId, current) {
+  const { error } = await supabase.from('profiles').update({is_active:!current}).eq('id',userId)
+  if (error) { toast('Error: '+error.message,'error'); return }
+  toast(current?'User suspended':'User restored','info')
+  await renderAdminUsers()
+}
+
+// ═══════════════════════════════════════════
+// ── PM: DASHBOARD ────────────────────────
+// ═══════════════════════════════════════════
+async function renderPMDashboard() {
+  const [
+    { count: propCount },
+    { count: activeJobs },
+    { data: pendingInv },
+    { data: recentJobs },
+  ] = await Promise.all([
+    supabase.from('properties').select('*',{count:'exact',head:true}).eq('owner_id',currentUser.id),
+    supabase.from('jobs').select('*',{count:'exact',head:true}).eq('created_by',currentUser.id).in('status',['pending','assigned','in_progress']),
+    supabase.from('invoices').select('*, job:jobs!inner(created_by)').eq('jobs.created_by',currentUser.id).eq('status','submitted'),
+    supabase.from('jobs').select('*, property:properties(address_line1), assigned_profile:profiles!assigned_to(full_name)').eq('created_by',currentUser.id).order('created_at',{ascending:false}).limit(5),
+  ])
+
+  const outstanding = (pendingInv||[]).reduce((s,i)=>s+Number(i.total_amount),0)
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">PROPERTY MANAGER <span class="accent">PORTAL</span></div>
+        <div class="page-subtitle">// portfolio · jobs · invoices</div>
+      </div>
+      <button class="btn btn-primary" onclick="openNewJobModal()">+ Submit Job</button>
+    </div>
+
+    <div class="stats-row cols-4">
+      <div class="stat-card amber"><div class="stat-label">Properties</div><div class="stat-value amber">${propCount??0}</div></div>
+      <div class="stat-card green"><div class="stat-label">Active Jobs</div><div class="stat-value green">${activeJobs??0}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Outstanding</div><div class="stat-value">$${outstanding.toFixed(0)}</div><div class="stat-sub">Pending invoices</div></div>
+      <div class="stat-card red"><div class="stat-label">Invoices to Pay</div><div class="stat-value red">${(pendingInv||[]).length}</div>${pendingInv?.length?`<div class="stat-sub"><a href="#" onclick="navigateTo('pm-invoices')" style="color:var(--amber)">Pay now →</a></div>`:''}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Recent Jobs</span>
+        <a href="#" onclick="navigateTo('pm-jobs')" style="font-size:11px;color:var(--amber);font-family:var(--mono)">View all →</a>
+      </div>
+      ${(recentJobs||[]).length ? recentJobs.map(j => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-weight:500">${j.title}</div>
+            <div style="font-size:11px;color:var(--muted)">${j.property?.address_line1||''} ${j.assigned_profile?`· ${j.assigned_profile.full_name}`:''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:80px"><div class="progress-wrap"><div class="progress-fill" style="width:${j.progress_pct}%"></div></div></div>
+            <span class="${statusPill(j.status)}">${j.status.replace('_',' ')}</span>
+          </div>
+        </div>
+      `).join('') : emptyState('No jobs yet. Submit your first job above.')}
+    </div>
+  `)
+}
+
+// ═══════════════════════════════════════════
+// ── PM: PROPERTIES ───────────────────────
+// ═══════════════════════════════════════════
+async function renderPMProperties() {
+  const { data: props } = await supabase.from('properties').select('*').eq('owner_id',currentUser.id).order('created_at',{ascending:false})
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">MY <span class="accent">PROPERTIES</span></div>
+        <div class="page-subtitle">${(props||[]).length} properties in portfolio</div>
+      </div>
+      <button class="btn btn-primary" onclick="openAddPropertyModal()">+ Add Property</button>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Address</th><th>City</th><th>Type</th><th>Units</th><th>Notes</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${(props||[]).map(p => `
+              <tr>
+                <td><strong>${p.address_line1}</strong>${p.address_line2?`<div style="font-size:11px;color:var(--muted)">${p.address_line2}</div>`:''}</td>
+                <td>${p.city}, ${p.state} ${p.postcode}</td>
+                <td>${p.property_type.replace('_',' ')}</td>
+                <td>${p.unit_count}</td>
+                <td style="font-size:12px;color:var(--muted)">${p.notes||'—'}</td>
+                <td>
+                  <button class="btn btn-primary btn-sm" onclick="openNewJobModalForProperty('${p.id}','${p.address_line1}')">+ Job</button>
+                </td>
+              </tr>
+            `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No properties yet. Add your first one.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `)
+}
+
+async function openAddPropertyModal() {
+  openModal('Add Property', `
+    <div class="form-group">
+      <label class="form-label">Address Line 1</label>
+      <input class="form-input" id="prop-addr1" placeholder="123 Main Street">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Address Line 2</label>
+      <input class="form-input" id="prop-addr2" placeholder="Unit, Suite, Apt (optional)">
+    </div>
+    <div class="grid-3" style="gap:10px">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">City</label>
+        <input class="form-input" id="prop-city">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">State</label>
+        <input class="form-input" id="prop-state" placeholder="NY">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Postcode</label>
+        <input class="form-input" id="prop-postcode">
+      </div>
+    </div>
+    <div class="grid-2" style="gap:10px;margin-top:10px">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Type</label>
+        <select class="form-input" id="prop-type">
+          <option value="residential">Residential</option>
+          <option value="multi_unit">Multi-Unit</option>
+          <option value="commercial">Commercial</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Units</label>
+        <input class="form-input" id="prop-units" type="number" value="1" min="1">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label class="form-label">Notes</label>
+      <input class="form-input" id="prop-notes" placeholder="Optional">
+    </div>
+    <div id="prop-error" class="alert alert-error" style="display:none"></div>
+  `, async () => {
+    const addr1 = document.getElementById('prop-addr1').value.trim()
+    const city  = document.getElementById('prop-city').value.trim()
+    const state = document.getElementById('prop-state').value.trim()
+    const post  = document.getElementById('prop-postcode').value.trim()
+    if (!addr1||!city||!state||!post) { showEl('prop-error','Address, city, state and postcode required'); return false }
+
+    const { error } = await supabase.from('properties').insert({
+      owner_id: currentUser.id,
+      address_line1: addr1,
+      address_line2: document.getElementById('prop-addr2').value.trim()||null,
+      city, state, postcode: post,
+      property_type: document.getElementById('prop-type').value,
+      unit_count: parseInt(document.getElementById('prop-units').value)||1,
+      notes: document.getElementById('prop-notes').value.trim()||null,
+    })
+    if (error) { showEl('prop-error', error.message); return false }
+    toast('Property added','success')
+    await renderPMProperties()
+    return true
+  })
+}
+
+// ═══════════════════════════════════════════
+// ── PM: JOBS ─────────────────────────────
+// ═══════════════════════════════════════════
+async function renderPMJobs() {
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('*, property:properties(address_line1,city), assigned_profile:profiles!assigned_to(full_name,email,phone)')
+    .eq('created_by', currentUser.id)
+    .order('created_at', {ascending:false})
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">MY <span class="accent">JOBS</span></div>
+        <div class="page-subtitle">${(jobs||[]).length} jobs across all properties</div>
+      </div>
+      <button class="btn btn-primary" onclick="openNewJobModal()">+ Submit Job</button>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Job</th><th>Property</th><th>Assigned To</th><th>Progress</th><th>Status</th><th>Priority</th><th>Due</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${(jobs||[]).map(j => `
+              <tr>
+                <td>
+                  <div style="font-weight:500">${j.title}</div>
+                  <div style="font-size:11px;color:var(--muted)">${j.category}</div>
+                </td>
+                <td style="font-size:12px">${j.property?.address_line1||'—'}</td>
+                <td style="font-size:12px">
+                  ${j.assigned_profile
+                    ? `${j.assigned_profile.full_name}<br><span style="color:var(--muted);font-size:11px">${j.assigned_profile.phone||j.assigned_profile.email||''}</span>`
+                    : `<button class="btn btn-ghost btn-sm" onclick="openAssignModal('${j.id}')">Assign</button>`
+                  }
+                </td>
+                <td>
+                  <div style="width:80px">
+                    <div class="progress-wrap"><div class="progress-fill" style="width:${j.progress_pct}%"></div></div>
+                    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">${j.progress_pct}%</div>
+                  </div>
+                </td>
+                <td><span class="${statusPill(j.status)}">${j.status.replace('_',' ')}</span></td>
+                <td><span class="pill ${j.priority==='emergency'?'pill-review':j.priority==='urgent'?'pill-pending':'pill-draft'}">${j.priority}</span></td>
+                <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${j.due_date||'—'}</td>
+                <td><button class="btn btn-ghost btn-sm" onclick="openJobDetail('${j.id}')">Detail</button></td>
+              </tr>
+            `).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No jobs yet.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `)
+}
+
+async function openAssignModal(jobId) {
+  const { data: subs } = await supabase.from('profiles').select('*').eq('role','subcontractor').eq('is_active',true)
+  openModal('Assign Subcontractor', `
+    <div class="form-group">
+      <label class="form-label">Select Subcontractor</label>
+      <select class="form-input" id="assign-sub">
+        <option value="">— Select —</option>
+        ${(subs||[]).map(s=>`<option value="${s.id}">${s.full_name} · ${s.trade_speciality?.join(', ')||'General'}</option>`).join('')}
+      </select>
+    </div>
+    <div id="assign-error" class="alert alert-error" style="display:none"></div>
+  `, async () => {
+    const subId = document.getElementById('assign-sub').value
+    if (!subId) { showEl('assign-error','Select a subcontractor'); return false }
+    const { error } = await supabase.from('jobs').update({assigned_to:subId, status:'assigned'}).eq('id',jobId)
+    if (error) { showEl('assign-error',error.message); return false }
+    // Notify sub
+    const { data: job } = await supabase.from('jobs').select('title,assigned_to').eq('id',jobId).single()
+    if (job) await createNotification(job.assigned_to, 'job_assigned', 'New job assigned to you', job.title)
+    toast('Subcontractor assigned','success')
+    await renderPMJobs()
+    return true
+  })
+}
+
+// ═══════════════════════════════════════════
+// ── PM: INVOICES (Payment Declaration) ───
+// ═══════════════════════════════════════════
+async function renderPMInvoices() {
+  const { data: invoices } = await supabase
+    .from('invoices')
+    .select('*, job:jobs!inner(title,property:properties(address_line1)), sub:profiles!submitted_by(full_name,phone)')
+    .eq('jobs.created_by', currentUser.id)
+    .order('created_at', {ascending:false})
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">INVOICES & <span class="accent">PAYMENTS</span></div>
+        <div class="page-subtitle">// review invoices · send payment · declare when sent</div>
+      </div>
+    </div>
+
+    ${!(invoices||[]).length ? `<div class="empty-state"><div class="icon">📄</div><div class="text">No invoices yet</div><div class="sub">They appear here when subcontractors submit them</div></div>` : ''}
+    ${(invoices||[]).map(inv => pmInvoiceCard(inv)).join('')}
+  `)
+}
+
+function pmInvoiceCard(inv) {
+  const isSubmitted  = inv.status === 'submitted'
+  const isDeclared   = inv.status === 'payment_declared'
+  const isConfirmed  = inv.status === 'payment_confirmed'
+  const isDisputed   = inv.status === 'disputed'
+
+  const payMethods = [
+    { v:'zelle',         icon:'💜', name:'Zelle',         detail: CFG.zelle || 'Not configured' },
+    { v:'cashapp',       icon:'💚', name:'Cash App',       detail: CFG.cashapp || 'Not configured' },
+    { v:'venmo',         icon:'🔵', name:'Venmo',          detail: CFG.venmo || 'Not configured' },
+    { v:'bank_transfer', icon:'🏦', name:'Bank Transfer',  detail: CFG.routing ? `Routing: ${CFG.routing} · Acct: ${CFG.account}` : 'Not configured' },
+  ]
+
+  return `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header">
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--amber)">INV-${inv.id.slice(0,8).toUpperCase()}</div>
+          <div style="font-weight:600;font-size:15px;margin-top:2px">${inv.job?.title||'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">${inv.job?.property?.address_line1||''} · ${inv.sub?.full_name||'—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--head);font-weight:800;font-size:26px;color:var(--amber)">$${Number(inv.total_amount).toFixed(2)}</div>
+          <span class="${invPill(inv.status)}">${inv.status.replace(/_/g,' ')}</span>
+        </div>
+      </div>
+
+      <!-- Breakdown -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:14px 18px;border-bottom:1px solid var(--border);font-size:13px">
+        <div><div class="stat-label">Labour</div>${inv.labour_hours}h @ $${inv.labour_rate}/h = $${(Number(inv.labour_hours)*Number(inv.labour_rate)).toFixed(2)}</div>
+        <div><div class="stat-label">Materials</div>$${Number(inv.materials_cost).toFixed(2)}</div>
+        <div><div class="stat-label">Total Due</div><span style="font-family:var(--head);font-weight:700;font-size:20px;color:var(--amber)">$${Number(inv.total_amount).toFixed(2)}</span></div>
+      </div>
+      ${inv.work_summary?`<div style="padding:10px 18px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border)"><strong style="color:var(--faint)">WORK: </strong>${inv.work_summary}</div>`:''}
+
+      ${isSubmitted ? `
+        <!-- PAYMENT INSTRUCTION SECTION -->
+        <div style="padding:20px 18px;background:rgba(245,166,35,0.03);border-top:1px solid rgba(245,166,35,0.15)">
+          <div style="font-family:var(--head);font-weight:700;font-size:14px;color:var(--amber);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px">
+            Send $${Number(inv.total_amount).toFixed(2)} via one of these methods, then click below
+          </div>
+          <div class="pay-method-grid" id="pm-grid-${inv.id}">
+            ${payMethods.map(m=>`
+              <div class="pay-method-card" id="pm-${inv.id}-${m.v}" onclick="selectPayMethod('${inv.id}','${m.v}')">
+                <div class="pay-method-icon">${m.icon}</div>
+                <div class="pay-method-name">${m.name}</div>
+                <div class="pay-method-detail">${m.detail}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Bank details box shown when bank selected -->
+          <div id="bank-detail-${inv.id}" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px;margin-bottom:14px;font-family:var(--mono);font-size:12px">
+            <div style="color:var(--muted)">Payable to: <span style="color:var(--text)">FlashFix LLC</span></div>
+            <div style="color:var(--muted)">Bank: <span style="color:var(--text)">${CFG.bank||'Chase Bank'}</span></div>
+            <div style="color:var(--muted)">Routing: <span style="color:var(--amber)">${CFG.routing||'—'}</span></div>
+            <div style="color:var(--muted)">Account: <span style="color:var(--amber)">${CFG.account||'—'}</span></div>
+            <div style="color:var(--muted)">Amount: <span style="color:var(--amber);font-weight:700">$${Number(inv.total_amount).toFixed(2)}</span></div>
+            <div style="color:var(--faint);margin-top:6px">Memo: INV-${inv.id.slice(0,8).toUpperCase()}</div>
+          </div>
+
+          <div style="margin-bottom:14px">
+            <label class="form-label">Confirmation / Reference <span style="color:var(--faint)">(optional but recommended)</span></label>
+            <input class="form-input" id="ref-${inv.id}" placeholder="e.g. Zelle confirmation number, last 4 of transfer">
+          </div>
+          <div id="declare-error-${inv.id}" class="alert alert-error" style="display:none"></div>
+          <button class="btn btn-success btn-full" id="declare-btn-${inv.id}" onclick="declarePayment('${inv.id}')" style="font-size:14px;padding:12px 18px">
+            ✓ I Have Sent the Payment
+          </button>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center">
+            This notifies FlashFix admin to manually verify. You will be notified once confirmed.
+          </p>
+        </div>
+      ` : ''}
+
+      ${isDeclared ? `
+        <div style="padding:14px 18px;background:rgba(52,152,219,0.06);border-top:1px solid rgba(52,152,219,0.2)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:22px">⏳</div>
+            <div>
+              <div style="font-weight:600;color:var(--blue)">Payment Declared — Awaiting Admin Confirmation</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">
+                Via ${inv.payment_method?.replace('_',' ')||'—'}${inv.payment_reference?' · Ref: '+inv.payment_reference:''}
+                · Declared ${inv.payment_declared_at?new Date(inv.payment_declared_at).toLocaleString():''}
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      ${isConfirmed ? `
+        <div style="padding:14px 18px;background:rgba(46,204,113,0.07);border-top:1px solid rgba(46,204,113,0.25)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:22px">✅</div>
+            <div>
+              <div style="font-weight:600;color:var(--green)">Payment Confirmed by FlashFix</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">
+                Paid via ${inv.payment_method?.replace('_',' ')||'—'}
+                · ${inv.payment_confirmed_at?new Date(inv.payment_confirmed_at).toLocaleString():''}
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      ${isDisputed ? `
+        <div style="padding:14px 18px;background:rgba(231,76,60,0.07);border-top:1px solid rgba(231,76,60,0.25)">
+          <div style="color:var(--red);font-weight:600">⚠ Disputed — Contact FlashFix admin</div>
+        </div>
+      ` : ''}
+    </div>
+  `
+}
+
+let selectedPayMethods = {} // invoiceId → method
+
+function selectPayMethod(invoiceId, method) {
+  selectedPayMethods[invoiceId] = method
+  document.querySelectorAll(`[id^="pm-${invoiceId}-"]`).forEach(el => el.classList.remove('selected'))
+  document.getElementById(`pm-${invoiceId}-${method}`)?.classList.add('selected')
+  const bankBox = document.getElementById(`bank-detail-${invoiceId}`)
+  if (bankBox) bankBox.style.display = method === 'bank_transfer' ? 'block' : 'none'
+}
+
+async function declarePayment(invoiceId) {
+  const method = selectedPayMethods[invoiceId]
+  if (!method) { showEl(`declare-error-${invoiceId}`, 'Select a payment method above'); return }
+  const ref = document.getElementById(`ref-${invoiceId}`)?.value.trim()
+  const btn = document.getElementById(`declare-btn-${invoiceId}`)
+  btn.disabled = true; btn.textContent = 'Submitting…'
+
+  const { error } = await supabase.from('invoices').update({
+    status: 'payment_declared',
+    payment_method: method,
+    payment_reference: ref || null,
+    payment_declared_at: new Date().toISOString(),
+  }).eq('id', invoiceId)
+
+  if (error) {
+    showEl(`declare-error-${invoiceId}`, error.message)
+    btn.disabled = false; btn.textContent = '✓ I Have Sent the Payment'
+    return
+  }
+
+  // Notify all admins
+  const { data: admins } = await supabase.from('profiles').select('id').eq('role','admin')
+  for (const a of admins||[]) {
+    await createNotification(a.id, 'payment_declared', 'Payment declared — needs confirmation', `Invoice INV-${invoiceId.slice(0,8).toUpperCase()} — admin verification required`)
+  }
+
+  toast('Payment declared. Admin will confirm shortly.', 'success')
+  await renderPMInvoices()
+}
+
+// ═══════════════════════════════════════════
+// ── SUBCONTRACTOR: DASHBOARD ─────────────
+// ═══════════════════════════════════════════
+async function renderSubDashboard() {
+  const [
+    { count: myJobs },
+    { data: pendingInvoices },
+    { data: confirmedInvoices },
+    { data: activeJobsList },
+  ] = await Promise.all([
+    supabase.from('jobs').select('*',{count:'exact',head:true}).eq('assigned_to',currentUser.id).in('status',['assigned','in_progress']),
+    supabase.from('invoices').select('total_amount').eq('submitted_by',currentUser.id).eq('status','submitted'),
+    supabase.from('invoices').select('total_amount').eq('submitted_by',currentUser.id).eq('status','payment_confirmed'),
+    supabase.from('jobs').select('*, property:properties(address_line1,city)').eq('assigned_to',currentUser.id).in('status',['assigned','in_progress']).order('due_date',{ascending:true}).limit(4),
+  ])
+
+  const pending   = (pendingInvoices||[]).reduce((s,i)=>s+Number(i.total_amount),0)
+  const confirmed = (confirmedInvoices||[]).reduce((s,i)=>s+Number(i.total_amount),0)
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">SUBCONTRACTOR <span class="accent">HUB</span></div>
+        <div class="page-subtitle">${currentProfile?.full_name} · ${currentProfile?.trade_speciality?.join(', ')||'General'}</div>
+      </div>
+      <button class="btn btn-ghost" onclick="navigateTo('sub-available')">Find Jobs →</button>
+    </div>
+
+    <div class="stats-row cols-4">
+      <div class="stat-card amber"><div class="stat-label">Active Jobs</div><div class="stat-value amber">${myJobs??0}</div></div>
+      <div class="stat-card green"><div class="stat-label">Total Earned</div><div class="stat-value green">$${confirmed.toFixed(0)}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Pending Pay</div><div class="stat-value">$${pending.toFixed(0)}</div></div>
+      <div class="stat-card amber"><div class="stat-label">Rating</div><div class="stat-value amber">${currentProfile?.rating||'—'}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Active Jobs</span>
+        <a href="#" onclick="navigateTo('sub-myjobs')" style="font-size:11px;color:var(--amber);font-family:var(--mono)">All jobs →</a>
+      </div>
+      ${(activeJobsList||[]).length ? activeJobsList.map(j=>`
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div>
+              <div style="font-weight:600">${j.title}</div>
+              <div style="font-size:11px;color:var(--muted)">${j.property?.address_line1||''}, ${j.property?.city||''} · Due: ${j.due_date||'—'}</div>
+            </div>
+            <span class="${statusPill(j.status)}">${j.status.replace('_',' ')}</span>
+          </div>
+          <div class="progress-wrap"><div class="progress-fill" style="width:${j.progress_pct}%"></div></div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px">${j.progress_pct}% complete</div>
+        </div>
+      `).join('') : emptyState('No active jobs. Find jobs to accept.','sub-available')}
+    </div>
+  `)
+}
+
+// ═══════════════════════════════════════════
+// ── SUBCONTRACTOR: AVAILABLE JOBS ────────
+// ═══════════════════════════════════════════
+async function renderSubAvailable() {
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('*, property:properties(address_line1,city,state)')
+    .is('assigned_to', null)
+    .eq('status', 'pending')
+    .order('created_at', {ascending:false})
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">AVAILABLE <span class="accent">JOBS</span></div>
+        <div class="page-subtitle">${(jobs||[]).length} open jobs near you</div>
+      </div>
+    </div>
+
+    ${!(jobs||[]).length ? `<div class="empty-state"><div class="icon">🔍</div><div class="text">No available jobs right now</div><div class="sub">Check back soon</div></div>` : ''}
+
+    ${(jobs||[]).map(j => `
+      <div class="job-avail-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--amber);margin-bottom:4px">${j.category.toUpperCase()} · ${j.priority.toUpperCase()}</div>
+            <div style="font-weight:600;font-size:15px">${j.title}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${j.property?.address_line1||'—'}, ${j.property?.city||''}, ${j.property?.state||''}</div>
+          </div>
+          <div style="text-align:right">
+            <span class="pill ${j.priority==='emergency'?'pill-review':j.priority==='urgent'?'pill-pending':'pill-draft'}">${j.priority}</span>
+            ${j.due_date?`<div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px">Due ${j.due_date}</div>`:''}
+          </div>
+        </div>
+        ${j.description?`<div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px;background:var(--surface);border-radius:3px">${j.description}</div>`:''}
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn btn-primary" onclick="acceptJob('${j.id}')">✓ Accept Job</button>
+          <button class="btn btn-ghost btn-sm" onclick="openJobDetail('${j.id}')">Details</button>
+        </div>
+      </div>
+    `).join('')}
+  `)
+}
+
+async function acceptJob(jobId) {
+  const { error } = await supabase.from('jobs').update({
+    assigned_to: currentUser.id,
+    status: 'assigned',
+  }).eq('id', jobId).is('assigned_to', null)
+
+  if (error) { toast('Error: '+error.message,'error'); return }
+  toast('Job accepted! It\'s now in your jobs list.', 'success')
+  await renderSubAvailable()
+}
+
+// ═══════════════════════════════════════════
+// ── SUBCONTRACTOR: MY JOBS ───────────────
+// ═══════════════════════════════════════════
+async function renderSubMyJobs() {
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('*, property:properties(address_line1,city)')
+    .eq('assigned_to', currentUser.id)
+    .order('created_at', {ascending:false})
+
+  const jobIds = (jobs||[]).map(j=>j.id)
+  let invoices = []
+  if (jobIds.length) {
+    const { data } = await supabase.from('invoices').select('*').in('job_id', jobIds)
+    invoices = data || []
+  }
+  const invByJob = Object.fromEntries(invoices.map(i=>[i.job_id,i]))
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">MY <span class="accent">JOBS</span></div>
+        <div class="page-subtitle">Update progress · submit invoices · track payment</div>
+      </div>
+    </div>
+    ${!(jobs||[]).length ? `<div class="empty-state"><div class="icon">🔧</div><div class="text">No jobs yet</div><div class="sub"><a href="#" onclick="navigateTo('sub-available')" style="color:var(--amber)">Find available jobs →</a></div></div>` : ''}
+    ${(jobs||[]).map(j => subJobCard(j, invByJob[j.id]||null)).join('')}
+  `)
+}
+
+function subJobCard(job, invoice) {
+  const invStatuses = {
+    submitted:         { label: 'Invoice submitted — awaiting PM payment',    color: 'var(--amber)' },
+    payment_declared:  { label: 'PM sent payment — admin verifying',           color: 'var(--blue)' },
+    payment_confirmed: { label: '✅ Payment confirmed by admin',               color: 'var(--green)' },
+    disputed:          { label: '⚠ Disputed — contact admin',                  color: 'var(--red)' },
+  }
+
+  return `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header">
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--amber)">${job.category.toUpperCase()}</div>
+          <div style="font-weight:600;font-size:15px;margin-top:2px">${job.title}</div>
+          <div style="font-size:11px;color:var(--muted)">${job.property?.address_line1||''}${job.due_date?` · Due ${job.due_date}`:''}</div>
+        </div>
+        <span class="${statusPill(job.status)}">${job.status.replace('_',' ')}</span>
+      </div>
+
+      <!-- Progress updater -->
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border)">
+        <label class="form-label">Progress</label>
+        <div style="display:flex;align-items:center;gap:12px">
+          <input type="range" min="0" max="100" step="5" value="${job.progress_pct}"
+            oninput="this.nextElementSibling.textContent=this.value+'%'"
+            style="flex:1;accent-color:var(--amber)"
+            id="prog-${job.id}">
+          <span style="font-family:var(--head);font-weight:700;color:var(--amber);width:40px;text-align:right">${job.progress_pct}%</span>
+          <button class="btn btn-ghost btn-sm" onclick="saveProgress('${job.id}')">Save</button>
+        </div>
+        <div class="progress-wrap" style="margin-top:8px">
+          <div class="progress-fill" style="width:${job.progress_pct}%"></div>
+        </div>
+      </div>
+
+      ${job.description?`<div style="padding:10px 18px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border)">${job.description}</div>`:''}
+
+      <!-- Invoice section -->
+      <div style="padding:16px 18px">
+        ${invoice ? `
+          <div style="margin-bottom:12px">
+            <div style="font-family:var(--head);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text);margin-bottom:8px">Invoice</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px;margin-bottom:12px">
+              <div><div class="stat-label">Labour</div>${invoice.labour_hours}h @ $${invoice.labour_rate}</div>
+              <div><div class="stat-label">Materials</div>$${Number(invoice.materials_cost).toFixed(2)}</div>
+              <div><div class="stat-label">Total</div><strong style="color:var(--amber);font-size:16px;font-family:var(--head)">$${Number(invoice.total_amount).toFixed(2)}</strong></div>
+            </div>
+            <div style="color:${invStatuses[invoice.status]?.color||'var(--muted)'};font-size:13px;font-weight:500">
+              ${invStatuses[invoice.status]?.label||invoice.status}
+            </div>
+          </div>
+        ` : `
+          <div style="font-family:var(--head);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text);margin-bottom:12px">Submit Invoice</div>
+          <div class="grid-3" style="gap:10px;margin-bottom:12px">
+            <div>
+              <label class="form-label">Labour Hours</label>
+              <input class="form-input" id="inv-hrs-${job.id}" type="number" step="0.5" min="0" placeholder="0" oninput="calcInvoice('${job.id}')">
+            </div>
+            <div>
+              <label class="form-label">Rate / Hour ($)</label>
+              <input class="form-input" id="inv-rate-${job.id}" type="number" value="65" oninput="calcInvoice('${job.id}')">
+            </div>
+            <div>
+              <label class="form-label">Materials ($)</label>
+              <input class="form-input" id="inv-mat-${job.id}" type="number" step="0.01" value="0" oninput="calcInvoice('${job.id}')">
+            </div>
+          </div>
+          <div id="inv-total-${job.id}" style="display:none;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:4px;padding:10px 14px;margin-bottom:12px">
+            <div class="stat-label">Total</div>
+            <div id="inv-total-val-${job.id}" style="font-family:var(--head);font-weight:800;font-size:28px;color:var(--amber)"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Work Summary</label>
+            <textarea class="form-input" id="inv-summary-${job.id}" placeholder="Describe work completed…"></textarea>
+          </div>
+          <div id="inv-error-${job.id}" class="alert alert-error" style="display:none"></div>
+          <button class="btn btn-primary" onclick="submitInvoice('${job.id}')">Submit Invoice</button>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px">Property manager will be notified to send payment. Admin confirms receipt.</p>
+        `}
+      </div>
+    </div>
+  `
+}
+
+function calcInvoice(jobId) {
+  const hrs  = parseFloat(document.getElementById(`inv-hrs-${jobId}`)?.value||0)
+  const rate = parseFloat(document.getElementById(`inv-rate-${jobId}`)?.value||0)
+  const mat  = parseFloat(document.getElementById(`inv-mat-${jobId}`)?.value||0)
+  const total = (hrs * rate) + mat
+  const box = document.getElementById(`inv-total-${jobId}`)
+  if (box) {
+    if (hrs > 0 || mat > 0) {
+      box.style.display = 'block'
+      document.getElementById(`inv-total-val-${jobId}`).textContent = '$' + total.toFixed(2)
+    } else { box.style.display = 'none' }
+  }
+}
+
+async function saveProgress(jobId) {
+  const pct = parseInt(document.getElementById(`prog-${jobId}`)?.value||0)
+  const newStatus = pct === 100 ? 'complete' : (pct > 0 ? 'in_progress' : 'assigned')
+  const { error } = await supabase.from('jobs').update({progress_pct:pct, status:newStatus}).eq('id',jobId)
+  if (error) { toast('Error: '+error.message,'error'); return }
+  toast('Progress saved','success')
+}
+
+async function submitInvoice(jobId) {
+  const hrs     = parseFloat(document.getElementById(`inv-hrs-${jobId}`)?.value||0)
+  const rate    = parseFloat(document.getElementById(`inv-rate-${jobId}`)?.value||0)
+  const mat     = parseFloat(document.getElementById(`inv-mat-${jobId}`)?.value||0)
+  const summary = document.getElementById(`inv-summary-${jobId}`)?.value.trim()
+  hide(`inv-error-${jobId}`)
+
+  if (!hrs) { showEl(`inv-error-${jobId}`,'Enter labour hours'); return }
+  const total = (hrs * rate) + mat
+
+  const { data: inv, error } = await supabase.from('invoices').insert({
+    job_id: jobId,
+    submitted_by: currentUser.id,
+    labour_hours: hrs,
+    labour_rate: rate,
+    materials_cost: mat,
+    total_amount: total,
+    work_summary: summary || null,
+    status: 'submitted',
+  }).select().single()
+
+  if (error) { showEl(`inv-error-${jobId}`, error.message); return }
+
+  // Notify job creator (PM/homeowner)
+  const { data: job } = await supabase.from('jobs').select('created_by,title').eq('id',jobId).single()
+  if (job) await createNotification(job.created_by, 'invoice_submitted', 'Invoice submitted for payment', `${job.title} — $${total.toFixed(2)}`)
+
+  toast('Invoice submitted! PM will be notified to pay.','success')
+  await renderSubMyJobs()
+}
+
+// ═══════════════════════════════════════════
+// ── SUBCONTRACTOR: CALENDAR ──────────────
+// ═══════════════════════════════════════════
+async function renderSubCalendar() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+
+  const startOfMonth = new Date(year, month, 1)
+  const endOfMonth   = new Date(year, month+1, 0)
+
+  const { data: avail } = await supabase
+    .from('availability')
+    .select('*')
+    .eq('subcontractor_id', currentUser.id)
+    .gte('date', startOfMonth.toISOString().split('T')[0])
+    .lte('date', endOfMonth.toISOString().split('T')[0])
+
+  const { data: myJobs } = await supabase
+    .from('jobs')
+    .select('due_date')
+    .eq('assigned_to', currentUser.id)
+    .gte('due_date', startOfMonth.toISOString().split('T')[0])
+    .lte('due_date', endOfMonth.toISOString().split('T')[0])
+
+  const availMap = Object.fromEntries((avail||[]).map(a=>[a.date,a.is_available]))
+  const jobDates = new Set((myJobs||[]).map(j=>j.due_date))
+
+  const monthName = now.toLocaleString('default',{month:'long'})
+  const firstDow = startOfMonth.getDay()
+  const daysInMonth = endOfMonth.getDate()
+  const todayStr = now.toISOString().split('T')[0]
+
+  let calDays = ''
+  for (let i=0; i<firstDow; i++) calDays += '<div class="cal-day empty"></div>'
+  for (let d=1; d<=daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+    const hasJob  = jobDates.has(dateStr)
+    const isToday = dateStr === todayStr
+    const avSet   = availMap[dateStr]
+    let cls = 'cal-day'
+    if (hasJob)            cls += ' has-job'
+    else if (isToday)      cls += ' today'
+    else if (avSet===true) cls += ' available'
+    else if (avSet===false) cls += ' unavailable'
+    calDays += `<div class="${cls}" onclick="toggleAvail('${dateStr}',${avSet!==false})">${d}</div>`
+  }
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">AVAILABILITY <span class="accent">CALENDAR</span></div>
+        <div class="page-subtitle">${monthName} ${year} · Click days to toggle availability</div>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:480px">
+      <div class="card-header">
+        <span class="card-title">${monthName} ${year}</span>
+        <div style="display:flex;gap:10px;font-family:var(--mono);font-size:10px">
+          <span style="color:var(--green)">■ Available</span>
+          <span style="color:var(--amber)">■ Has job</span>
+          <span style="color:var(--red)">■ Unavailable</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="cal-grid" style="margin-bottom:8px">
+          ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-header-cell">${d}</div>`).join('')}
+        </div>
+        <div class="cal-grid" id="cal-grid">${calDays}</div>
+      </div>
+    </div>
+  `)
+}
+
+async function toggleAvail(dateStr, currentlyAvail) {
+  const { data: existing } = await supabase.from('availability').select('id').eq('subcontractor_id',currentUser.id).eq('date',dateStr).single()
+  if (existing) {
+    await supabase.from('availability').update({is_available:!currentlyAvail}).eq('id',existing.id)
+  } else {
+    await supabase.from('availability').insert({subcontractor_id:currentUser.id, date:dateStr, is_available:false})
+  }
+  await renderSubCalendar()
+}
+
+// ═══════════════════════════════════════════
+// ── HOMEOWNER: DASHBOARD ─────────────────
+// ═══════════════════════════════════════════
+async function renderOwnerDashboard() {
+  const [
+    { data: activeJobs },
+    { count: totalJobs },
+    { data: notifications },
+  ] = await Promise.all([
+    supabase.from('jobs').select('*, property:properties(address_line1), assigned_profile:profiles!assigned_to(full_name,phone)').eq('created_by',currentUser.id).in('status',['pending','assigned','in_progress']).order('created_at',{ascending:false}),
+    supabase.from('jobs').select('*',{count:'exact',head:true}).eq('created_by',currentUser.id),
+    supabase.from('notifications').select('*').eq('user_id',currentUser.id).eq('is_read',false).order('created_at',{ascending:false}).limit(5),
+  ])
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">HOMEOWNER <span class="accent">PORTAL</span></div>
+        <div class="page-subtitle">${currentProfile?.full_name}</div>
+      </div>
+      <button class="btn btn-primary" onclick="openNewJobModal()">+ Request Repair</button>
+    </div>
+
+    <div class="stats-row cols-3">
+      <div class="stat-card green"><div class="stat-label">Active Jobs</div><div class="stat-value green">${(activeJobs||[]).length}</div></div>
+      <div class="stat-card blue"><div class="stat-label">Total Jobs</div><div class="stat-value">${totalJobs??0}</div></div>
+      <div class="stat-card amber"><div class="stat-label">Notifications</div><div class="stat-value amber">${(notifications||[]).length}</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Active Jobs</span></div>
+        ${(activeJobs||[]).length ? activeJobs.map(j=>`
+          <div style="padding:14px 18px;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <div>
+                <div style="font-weight:600">${j.title}</div>
+                <div style="font-size:11px;color:var(--muted)">${j.property?.address_line1||''}${j.assigned_profile?` · ${j.assigned_profile.full_name}`:''}</div>
+              </div>
+              <span class="${statusPill(j.status)}">${j.status.replace('_',' ')}</span>
+            </div>
+            <div class="progress-wrap"><div class="progress-fill" style="width:${j.progress_pct}%"></div></div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px">${j.progress_pct}% complete</div>
+          </div>
+        `).join('') : emptyState('No active jobs')}
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Notifications</span>
+          ${(notifications||[]).length ? `<button class="btn btn-ghost btn-sm" onclick="markAllRead()">Mark all read</button>` : ''}
+        </div>
+        ${(notifications||[]).length ? notifications.map(n=>`
+          <div class="notif-item unread">
+            <div class="notif-icon">🔔</div>
+            <div>
+              <div style="font-weight:500;font-size:13px">${n.title}</div>
+              <div style="font-size:12px;color:var(--muted)">${n.body}</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:3px">${new Date(n.created_at).toLocaleString()}</div>
+            </div>
+          </div>
+        `).join('') : emptyState('No new notifications')}
+      </div>
+    </div>
+  `)
+}
+
+async function markAllRead() {
+  await supabase.from('notifications').update({is_read:true}).eq('user_id',currentUser.id).eq('is_read',false)
+  toast('All marked as read','info')
+  await renderOwnerDashboard()
+}
+
+// ═══════════════════════════════════════════
+// ── HOMEOWNER: MY JOBS ───────────────────
+// ═══════════════════════════════════════════
+async function renderOwnerJobs() {
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('*, property:properties(address_line1,city), assigned_profile:profiles!assigned_to(full_name,phone,email)')
+    .eq('created_by', currentUser.id)
+    .order('created_at', {ascending:false})
+
+  setPage(`
+    <div class="page-header">
+      <div>
+        <div class="page-title">MY <span class="accent">JOBS</span></div>
+        <div class="page-subtitle">${(jobs||[]).length} total jobs</div>
+      </div>
+      <button class="btn btn-primary" onclick="openNewJobModal()">+ Request Repair</button>
+    </div>
+
+    ${!(jobs||[]).length ? `<div class="empty-state"><div class="icon">🏠</div><div class="text">No jobs yet</div><div class="sub">Submit a repair request to get started</div></div>` : ''}
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Job</th><th>Property</th><th>Assigned To</th><th>Progress</th><th>Status</th><th>Due</th></tr></thead>
+          <tbody>
+            ${(jobs||[]).map(j=>`
+              <tr>
+                <td><div style="font-weight:500">${j.title}</div><div style="font-size:11px;color:var(--muted)">${j.category}</div></td>
+                <td style="font-size:12px">${j.property?.address_line1||'—'}</td>
+                <td style="font-size:12px">
+                  ${j.assigned_profile
+                    ? `${j.assigned_profile.full_name}<br><span style="color:var(--muted);font-size:11px">${j.assigned_profile.phone||j.assigned_profile.email||''}</span>`
+                    : '<span style="color:var(--faint)">Unassigned</span>'
+                  }
+                </td>
+                <td>
+                  <div style="width:80px">
+                    <div class="progress-wrap"><div class="progress-fill" style="width:${j.progress_pct}%"></div></div>
+                    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">${j.progress_pct}%</div>
+                  </div>
+                </td>
+                <td><span class="${statusPill(j.status)}">${j.status.replace('_',' ')}</span></td>
+                <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${j.due_date||'—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `)
+}
+
+// ═══════════════════════════════════════════
+// NEW JOB MODAL (shared)
+// ═══════════════════════════════════════════
+async function openNewJobModal(prePropertyId = null, prePropertyName = null) {
+  const { data: props } = await supabase
+    .from('properties')
+    .select('id,address_line1,city')
+    .eq('owner_id', currentUser.id)
+
+  const needProp = !props?.length && currentProfile?.role !== 'homeowner'
+
+  openModal('Submit Job Request', `
+    ${needProp ? '<div class="alert alert-info">Add a property first before submitting jobs.</div>' : ''}
+    <div class="form-group">
+      <label class="form-label">Property</label>
+      <select class="form-input" id="job-prop">
+        <option value="">— Select property —</option>
+        ${(props||[]).map(p=>`<option value="${p.id}" ${p.id===prePropertyId?'selected':''}>${p.address_line1}, ${p.city}</option>`).join('')}
+        <option value="__new__">+ Add new property…</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Job Title</label>
+      <input class="form-input" id="job-title" placeholder="e.g. Fix leaking kitchen pipe">
+    </div>
+    <div class="grid-2" style="gap:10px">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Category</label>
+        <select class="form-input" id="job-cat">
+          <option value="plumbing">Plumbing</option>
+          <option value="electrical">Electrical</option>
+          <option value="hvac">HVAC</option>
+          <option value="roofing">Roofing</option>
+          <option value="general">General</option>
+          <option value="landscaping">Landscaping</option>
+          <option value="pest_control">Pest Control</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Priority</label>
+        <select class="form-input" id="job-pri">
+          <option value="standard">Standard</option>
+          <option value="urgent">Urgent</option>
+          <option value="emergency">🚨 Emergency</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label class="form-label">Description</label>
+      <textarea class="form-input" id="job-desc" placeholder="Describe the issue in detail…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Due Date <span style="color:var(--faint)">(optional)</span></label>
+      <input class="form-input" id="job-due" type="date">
+    </div>
+    <div id="job-error" class="alert alert-error" style="display:none"></div>
+  `, async () => {
+    const propId  = document.getElementById('job-prop').value
+    const title   = document.getElementById('job-title').value.trim()
+    const cat     = document.getElementById('job-cat').value
+    const pri     = document.getElementById('job-pri').value
+    const desc    = document.getElementById('job-desc').value.trim()
+    const due     = document.getElementById('job-due').value
+
+    if (propId === '__new__') { closeModal(); openAddPropertyModal(); return false }
+    if (!propId) { showEl('job-error','Select a property'); return false }
+    if (!title)  { showEl('job-error','Job title required'); return false }
+
+    const { error } = await supabase.from('jobs').insert({
+      property_id: propId,
+      created_by: currentUser.id,
+      title, category: cat, priority: pri,
+      description: desc || null,
+      due_date: due || null,
+      status: 'pending',
+      progress_pct: 0,
+    })
+    if (error) { showEl('job-error', error.message); return false }
+    toast('Job submitted!','success')
+    if (currentPage) await navigateTo(currentPage)
+    return true
+  })
+
+  if (prePropertyId) {
+    const sel = document.getElementById('job-prop')
+    if (sel) sel.value = prePropertyId
+  }
+}
+
+function openNewJobModalForProperty(propId, propName) {
+  openNewJobModal(propId, propName)
+}
+
+// ═══════════════════════════════════════════
+// JOB DETAIL MODAL
+// ═══════════════════════════════════════════
+async function openJobDetail(jobId) {
+  const { data: job } = await supabase
+    .from('jobs')
+    .select('*, property:properties(*), assigned_profile:profiles!assigned_to(*), creator:profiles!created_by(*)')
+    .eq('id', jobId)
+    .single()
+
+  const { data: docs } = await supabase.from('documents').select('*').eq('job_id',jobId)
+
+  if (!job) { toast('Job not found','error'); return }
+
+  openModal(`Job: ${job.title}`, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div class="stat-label">Status</div><span class="${statusPill(job.status)}">${job.status.replace('_',' ')}</span></div>
+      <div><div class="stat-label">Priority</div><span class="pill ${job.priority==='emergency'?'pill-review':job.priority==='urgent'?'pill-pending':'pill-draft'}">${job.priority}</span></div>
+      <div><div class="stat-label">Category</div>${job.category}</div>
+      <div><div class="stat-label">Due</div>${job.due_date||'—'}</div>
+      <div><div class="stat-label">Property</div>${job.property?.address_line1||'—'}<br><span style="font-size:11px;color:var(--muted)">${job.property?.city||''}, ${job.property?.state||''}</span></div>
+      <div><div class="stat-label">Assigned To</div>${job.assigned_profile?.full_name||'<span style="color:var(--faint)">Unassigned</span>'}</div>
+    </div>
+    ${job.description?`<div style="margin-bottom:14px"><div class="stat-label">Description</div><div style="font-size:13px;color:var(--muted)">${job.description}</div></div>`:''}
+    <div style="margin-bottom:14px">
+      <div class="stat-label">Progress</div>
+      <div class="progress-wrap" style="height:6px"><div class="progress-fill ${job.progress_pct===100?'green':''}" style="width:${job.progress_pct}%"></div></div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px">${job.progress_pct}%</div>
+    </div>
+    ${(docs||[]).length?`
+      <div><div class="stat-label">Documents (${docs.length})</div>
+      ${docs.map(d=>`<div style="font-size:12px;color:var(--muted);padding:4px 0">${d.category} · ${d.file_name}</div>`).join('')}
+      </div>
+    `:''}
+  `, null)
+}
+
+// ═══════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════
+async function createNotification(userId, type, title, body, link) {
+  await supabase.from('notifications').insert({
+    user_id: userId, type, title, body, link: link||null, is_read: false
+  })
+}
+
+// ═══════════════════════════════════════════
+// MODAL SYSTEM
+// ═══════════════════════════════════════════
+function openModal(title, bodyHtml, onConfirm, confirmLabel = 'Save') {
+  const mc = document.getElementById('modal-container')
+  mc.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <span class="modal-title">${title}</span>
+          <button class="btn btn-ghost btn-icon" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">${bodyHtml}</div>
+        ${onConfirm ? `
+          <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" id="modal-confirm-btn" onclick="handleModalConfirm()">${confirmLabel}</button>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `
+  mc._onConfirm = onConfirm
+}
+
+async function handleModalConfirm() {
+  const btn = document.getElementById('modal-confirm-btn')
+  if (!btn) return
+  const fn = document.getElementById('modal-container')._onConfirm
+  if (!fn) return
+  btn.disabled = true
+  btn.textContent = 'Saving…'
+  const result = await fn()
+  if (result !== false) closeModal()
+  else { btn.disabled = false; btn.textContent = 'Save' }
+}
+
+function closeModal() {
+  document.getElementById('modal-container').innerHTML = ''
+}
+
+// ═══════════════════════════════════════════
+// TOAST SYSTEM
+// ═══════════════════════════════════════════
+function toast(message, type = 'info') {
+  const icons = { success:'✅', error:'❌', info:'💡' }
+  const el = document.createElement('div')
+  el.className = `toast ${type}`
+  el.innerHTML = `<span>${icons[type]||''}</span><span>${message}</span>`
+  document.getElementById('toast-container').appendChild(el)
+  setTimeout(() => el.remove(), 4000)
+}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function show(id)  { const el=document.getElementById(id); if(el) el.style.display='' }
+function hide(id)  { const el=document.getElementById(id); if(el) el.style.display='none' }
+function showEl(id, msg) { const el=document.getElementById(id); if(el){el.textContent=msg;el.style.display=''} }
+
+function setPage(html) {
+  const mc = document.getElementById('main-content')
+  mc.innerHTML = `<div class="page-enter">${html}</div>`
+}
+
+function statusPill(status) {
+  return {
+    pending:'pill pill-pending', assigned:'pill pill-pending',
+    in_progress:'pill pill-active', complete:'pill pill-complete',
+    disputed:'pill pill-review', cancelled:'pill pill-draft',
+  }[status] || 'pill pill-draft'
+}
+
+function invPill(status) {
+  return {
+    draft:'pill pill-draft', submitted:'pill pill-pending',
+    payment_declared:'pill pill-declared', payment_confirmed:'pill pill-confirmed',
+    disputed:'pill pill-review',
+  }[status] || 'pill pill-draft'
+}
+
+function rolePillClass(role) {
+  return {
+    admin:'role-badge role-admin', property_manager:'role-badge role-pm',
+    subcontractor:'role-badge role-sub', homeowner:'role-badge role-owner',
+  }[role] || 'role-badge'
+}
+
+function emptyState(text, linkPage) {
+  return `<div class="empty-state">
+    <div class="icon" style="font-size:28px">○</div>
+    <div class="text">${text}</div>
+    ${linkPage?`<div class="sub"><a href="#" onclick="navigateTo('${linkPage}')" style="color:var(--amber)">Get started →</a></div>`:''}
+  </div>`
+}
+
+// ═══════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal()
+})
+
+// ═══════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════
+init()
+</script>
+
+<!-- ═══════════════════════════════════════════
+     SUPABASE SCHEMA — paste into SQL Editor
+     (also saved as supabase-schema.sql in this build)
+════════════════════════════════════════════
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('admin','property_manager','homeowner','subcontractor')),
+  full_name TEXT NOT NULL DEFAULT '',
+  email TEXT NOT NULL DEFAULT '',
+  phone TEXT, avatar_url TEXT, trade_speciality TEXT[], rating NUMERIC(3,2),
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE properties (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  owner_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  address_line1 TEXT NOT NULL, address_line2 TEXT,
+  city TEXT NOT NULL, state TEXT NOT NULL, postcode TEXT NOT NULL,
+  property_type TEXT NOT NULL DEFAULT 'residential', unit_count INTEGER NOT NULL DEFAULT 1,
+  notes TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE jobs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES profiles(id),
+  assigned_to UUID REFERENCES profiles(id),
+  title TEXT NOT NULL, description TEXT,
+  category TEXT NOT NULL DEFAULT 'general',
+  priority TEXT NOT NULL DEFAULT 'standard',
+  status TEXT NOT NULL DEFAULT 'pending',
+  progress_pct INTEGER NOT NULL DEFAULT 0,
+  due_date DATE, completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE invoices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  submitted_by UUID NOT NULL REFERENCES profiles(id),
+  labour_hours NUMERIC(8,2) NOT NULL DEFAULT 0,
+  labour_rate NUMERIC(10,2) NOT NULL DEFAULT 0,
+  materials_cost NUMERIC(10,2) NOT NULL DEFAULT 0,
+  total_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  work_summary TEXT,
+  status TEXT NOT NULL DEFAULT 'submitted',
+  payment_method TEXT, payment_reference TEXT,
+  payment_declared_at TIMESTAMPTZ, payment_confirmed_at TIMESTAMPTZ,
+  confirmed_by UUID REFERENCES profiles(id), admin_notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE documents (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  uploaded_by UUID NOT NULL REFERENCES profiles(id),
+  file_name TEXT NOT NULL, storage_path TEXT NOT NULL,
+  file_size_bytes INTEGER, mime_type TEXT,
+  category TEXT DEFAULT 'other',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  type TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
+  link TEXT, is_read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE availability (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  subcontractor_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  date DATE NOT NULL, is_available BOOLEAN NOT NULL DEFAULT true, notes TEXT,
+  UNIQUE(subcontractor_id, date)
+);
+
+CREATE OR REPLACE FUNCTION handle_new_user() RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO profiles (id,email,full_name,role,phone)
+  VALUES (NEW.id, NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name',''),
+    COALESCE(NEW.raw_user_meta_data->>'role','homeowner'),
+    NEW.raw_user_meta_data->>'phone');
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Enable RLS on all tables and add policies per the full schema in the project docs.
+-->
+</body>
+</html>
