@@ -10,13 +10,13 @@ vercel.json  ← Vercel static deployment config
 ## Steps
 
 ### 1. Push to GitHub
-```bash
+u o```bash
 git init
 git add .
 git commit -m "initial"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/flashfix.git
-git push -u origin main
+git remote add origin https://github.com/dustin651/FLASHFIXTURNOVER.COM.git
+git push -rigin main
 ```
 
 ### 2. Deploy on Vercel
