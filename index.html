@@ -604,13 +604,7 @@ tbody tr:hover { background: var(--panel); }
 /* ═══════════════════════════════════════════════
    CONFIG SCREEN
 ═══════════════════════════════════════════════ */
-#config-screen {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg);
-}
+
 .config-card {
   width: 540px;
   background: var(--surface);
@@ -724,56 +718,7 @@ tbody tr:hover { background: var(--panel); }
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════
-     CONFIG SCREEN (first run)
-════════════════════════════════════════════ -->
 
-  <div class="config-card">
-    <div class="brand-logo" style="margin-bottom:6px"><span class="ff">FLASH</span><span class="fix">FIX</span></div>
-    <div class="brand-tagline">Platform Setup</div>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:22px;line-height:1.6">
-      Enter your Supabase project credentials. Find these in your Supabase dashboard under
-      <strong style="color:var(--text)">Settings → API</strong>.
-    </p>
-    <div class="form-group">
-      <label class="form-label">Supabase Project URL</label>
-      <input class="form-input" id="cfg-url" placeholder="https://xxxxxxxxxxxx.supabase.co">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Supabase Anon Key</label>
-      <input class="form-input" id="cfg-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
-    </div>
-    <div class="divider"></div>
-    <p style="color:var(--muted);font-size:12px;margin-bottom:14px">Your payment details — shown to property managers when paying invoices.</p>
-    <div class="grid-2" style="gap:10px;margin-bottom:12px">
-      <div class="form-group" style="margin:0">
-        <label class="form-label">Zelle Email/Phone</label>
-        <input class="form-input" id="cfg-zelle" placeholder="pay@flashfix.io">
-      </div>
-      <div class="form-group" style="margin:0">
-        <label class="form-label">Cash App Tag</label>
-        <input class="form-input" id="cfg-cashapp" placeholder="$FlashFix">
-      </div>
-      <div class="form-group" style="margin:0">
-        <label class="form-label">Venmo Handle</label>
-        <input class="form-input" id="cfg-venmo" placeholder="@FlashFix">
-      </div>
-      <div class="form-group" style="margin:0">
-        <label class="form-label">Bank (Routing)</label>
-        <input class="form-input" id="cfg-routing" placeholder="021000021">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Bank Account Number</label>
-      <input class="form-input" id="cfg-account" placeholder="Account number">
-    </div>
-    <div id="cfg-error" class="alert alert-error" style="display:none"></div>
-    <button class="btn btn-primary btn-full" onclick="saveConfig()">Save & Connect</button>
-    <p style="color:var(--faint);font-size:11px;font-family:var(--mono);margin-top:12px;text-align:center">
-      Settings saved locally in your browser. Never shared.
-    </p>
-  </div>
-</div>
 
 <!-- ═══════════════════════════════════════════
      AUTH SCREEN
@@ -797,8 +742,6 @@ tbody tr:hover { background: var(--panel); }
       <button class="btn btn-primary btn-full" onclick="handleLogin()" style="margin-bottom:14px">Sign In</button>
       <p style="text-align:center;color:var(--muted);font-size:12px">
         No account? <a href="#" onclick="showRegister()" style="color:var(--amber)">Register</a>
-        &nbsp;·&nbsp;
-        <a href="#" onclick="showConfig()" style="color:var(--faint);font-size:11px">Settings</a>
       </p>
     </div>
 
@@ -881,64 +824,26 @@ tbody tr:hover { background: var(--panel); }
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// HARDCODED CONFIG
+// ═══════════════════════════════════════════
+const CFG = {
+  url:     'https://hfxljxqgtraadkkzdfrp.supabase.co',
+  key:     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmeGxqeHFndHJhYWRra3pkZnJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NzkyODQsImV4cCI6MjA4NjU1NTI4NH0.VbQOltDXG-fKXGMsDhRQPvZBiShC_hjupL8cHbYS5hI',
+  bank:    'Column N.A.',
+  routing: '121145433',
+  account: '980462961181754',
+}
+
 let supabase = null
 let currentUser = null
 let currentProfile = null
 let currentPage = null
-let CFG = {}
-
-// ═══════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════
-function loadConfig() {
-  try {
-    const raw = localStorage.getItem('ff_config')
-    return raw ? JSON.parse(raw) : null
-  } catch { return null }
-}
-
-function saveConfig() {
-  const url = document.getElementById('cfg-url').value.trim()
-  const key = document.getElementById('cfg-key').value.trim()
-  if (!url || !key) { showEl('cfg-error', 'URL and Anon Key are required'); return }
-  const cfg = {
-    url, key,
-    zelle:    document.getElementById('cfg-zelle').value.trim()   || 'payments@flashfix.io',
-    cashapp:  document.getElementById('cfg-cashapp').value.trim() || '$FlashFix',
-    venmo:    document.getElementById('cfg-venmo').value.trim()   || '@FlashFix',
-    routing:  document.getElementById('cfg-routing').value.trim() || '',
-    account:  document.getElementById('cfg-account').value.trim() || '',
-  }
-  localStorage.setItem('ff_config', JSON.stringify(cfg))
-  location.reload()
-}
-
-function showConfig() {
-  hide('auth-screen'); hide('app')
-  show('config-screen')
-  const cfg = loadConfig()
-  if (cfg) {
-    document.getElementById('cfg-url').value = cfg.url || ''
-    document.getElementById('cfg-key').value = cfg.key || ''
-    document.getElementById('cfg-zelle').value = cfg.zelle || ''
-    document.getElementById('cfg-cashapp').value = cfg.cashapp || ''
-    document.getElementById('cfg-venmo').value = cfg.venmo || ''
-    document.getElementById('cfg-routing').value = cfg.routing || ''
-    document.getElementById('cfg-account').value = cfg.account || ''
-  }
-}
 
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
 async function init() {
-  CFG = loadConfig()
-  if (!CFG || !CFG.url || !CFG.key) {
-    // config-screen is already visible by default
-    return
-  }
-
-  hide('config-screen')
   supabase = window.supabase.createClient(CFG.url, CFG.key)
 
   const { data: { session } } = await supabase.auth.getSession()
@@ -962,7 +867,7 @@ async function loadProfile() {
 // AUTH
 // ═══════════════════════════════════════════
 function showAuthScreen() {
-  hide('app'); hide('config-screen')
+  hide('app')
   show('auth-screen')
   show('auth-login'); hide('auth-register')
 }
@@ -1020,7 +925,7 @@ async function handleSignOut() {
 // APP SHELL
 // ═══════════════════════════════════════════
 function showApp() {
-  hide('auth-screen'); hide('config-screen')
+  hide('auth-screen')
   show('app')
   renderSidebar()
   navigateTo(defaultPage())
@@ -1736,10 +1641,7 @@ function pmInvoiceCard(inv) {
   const isDisputed   = inv.status === 'disputed'
 
   const payMethods = [
-    { v:'zelle',         icon:'💜', name:'Zelle',         detail: CFG.zelle || 'Not configured' },
-    { v:'cashapp',       icon:'💚', name:'Cash App',       detail: CFG.cashapp || 'Not configured' },
-    { v:'venmo',         icon:'🔵', name:'Venmo',          detail: CFG.venmo || 'Not configured' },
-    { v:'bank_transfer', icon:'🏦', name:'Bank Transfer',  detail: CFG.routing ? `Routing: ${CFG.routing} · Acct: ${CFG.account}` : 'Not configured' },
+    { v:'bank_transfer', icon:'🏦', name:'Bank Transfer (Column N.A.)', detail: `Routing: ${CFG.routing} · Acct: ${CFG.account}` },
   ]
 
   return `
@@ -1770,9 +1672,9 @@ function pmInvoiceCard(inv) {
           <div style="font-family:var(--head);font-weight:700;font-size:14px;color:var(--amber);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px">
             Send $${Number(inv.total_amount).toFixed(2)} via one of these methods, then click below
           </div>
-          <div class="pay-method-grid" id="pm-grid-${inv.id}">
+          <div class="pay-method-grid" id="pm-grid-${inv.id}" style="grid-template-columns:1fr">
             ${payMethods.map(m=>`
-              <div class="pay-method-card" id="pm-${inv.id}-${m.v}" onclick="selectPayMethod('${inv.id}','${m.v}')">
+              <div class="pay-method-card selected" id="pm-${inv.id}-${m.v}">
                 <div class="pay-method-icon">${m.icon}</div>
                 <div class="pay-method-name">${m.name}</div>
                 <div class="pay-method-detail">${m.detail}</div>
@@ -1780,12 +1682,11 @@ function pmInvoiceCard(inv) {
             `).join('')}
           </div>
 
-          <!-- Bank details box shown when bank selected -->
-          <div id="bank-detail-${inv.id}" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px;margin-bottom:14px;font-family:var(--mono);font-size:12px">
-            <div style="color:var(--muted)">Payable to: <span style="color:var(--text)">FlashFix LLC</span></div>
-            <div style="color:var(--muted)">Bank: <span style="color:var(--text)">${CFG.bank||'Chase Bank'}</span></div>
-            <div style="color:var(--muted)">Routing: <span style="color:var(--amber)">${CFG.routing||'—'}</span></div>
-            <div style="color:var(--muted)">Account: <span style="color:var(--amber)">${CFG.account||'—'}</span></div>
+          <!-- Bank details always shown -->
+          <div id="bank-detail-${inv.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px;margin-bottom:14px;font-family:var(--mono);font-size:12px">
+            <div style="color:var(--muted)">Bank: <span style="color:var(--text)">${CFG.bank}</span></div>
+            <div style="color:var(--muted)">ABA Routing: <span style="color:var(--amber)">${CFG.routing}</span></div>
+            <div style="color:var(--muted)">Account: <span style="color:var(--amber)">${CFG.account}</span></div>
             <div style="color:var(--muted)">Amount: <span style="color:var(--amber);font-weight:700">$${Number(inv.total_amount).toFixed(2)}</span></div>
             <div style="color:var(--faint);margin-top:6px">Memo: INV-${inv.id.slice(0,8).toUpperCase()}</div>
           </div>
@@ -1854,8 +1755,7 @@ function selectPayMethod(invoiceId, method) {
 }
 
 async function declarePayment(invoiceId) {
-  const method = selectedPayMethods[invoiceId]
-  if (!method) { showEl(`declare-error-${invoiceId}`, 'Select a payment method above'); return }
+  const method = 'bank_transfer'
   const ref = document.getElementById(`ref-${invoiceId}`)?.value.trim()
   const btn = document.getElementById(`declare-btn-${invoiceId}`)
   btn.disabled = true; btn.textContent = 'Submitting…'
